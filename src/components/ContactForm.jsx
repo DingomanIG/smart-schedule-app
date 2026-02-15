@@ -14,12 +14,14 @@ export default function ContactForm() {
     setError('')
 
     const formData = new FormData(e.target)
-    formData.append('access_key', accessKey || 'YOUR_ACCESS_KEY')
+    const json = Object.fromEntries(formData.entries())
+    json.access_key = accessKey
 
     try {
       const res = await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(json),
       })
       const data = await res.json()
 

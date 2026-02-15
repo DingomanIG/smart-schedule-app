@@ -1,15 +1,9 @@
-import OpenAI from 'openai'
-
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  baseURL: window.location.origin + '/api/openai/v1',
-  dangerouslyAllowBrowser: true,
-})
+const isDev = import.meta.env.DEV
 
 export async function parseSchedule(userMessage) {
   const today = new Date().toISOString().split('T')[0]
 
-  const completion = await openai.chat.completions.create({
+  const body = {
     model: 'gpt-4o-mini',
     messages: [
       {
@@ -41,9 +35,36 @@ duration이 명시되지 않으면 60(분)으로 기본 설정
       },
     ],
     temperature: 0.3,
-  })
+  }
 
-  const result = completion.choices[0].message.content
+  let data
+
+  if (isDev) {
+    // Development: Vite proxy
+    const response = await fetch('/api/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify(body),
+    })
+    data = await response.json()
+  } else {
+    // Production: Vercel serverless function
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    data = await response.json()
+  }
+
+  if (data.error) {
+    throw new Error(data.error.message || 'OpenAI API 호출 실패')
+  }
+
+  const result = data.choices[0].message.content
   const jsonMatch = result.match(/\{[\s\S]*\}/)
   return jsonMatch ? JSON.parse(jsonMatch[0]) : null
 }

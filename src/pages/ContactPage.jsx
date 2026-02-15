@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
+import SEO from '../components/SEO'
 import ContactForm from '../components/ContactForm'
 
 export default function ContactPage() {
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEO title="문의하기" description="스마트 스케줄 서비스 관련 문의사항을 남겨주세요. 영업일 기준 1~2일 이내에 답변 드립니다." path="/contact" />
       <div className="max-w-2xl mx-auto px-4 py-8">
         <Link to="/" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline mb-6">
           <ArrowLeft size={16} /> 홈으로 돌아가기

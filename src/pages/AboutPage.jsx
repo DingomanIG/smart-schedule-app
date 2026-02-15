@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
+import SEO from '../components/SEO'
 
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEO title="서비스 소개" description="스마트 스케줄은 AI 기반 자연어 일정 관리 웹 애플리케이션입니다. 채팅으로 간편하게 일정을 등록하세요." path="/about" />
       <div className="max-w-2xl mx-auto px-4 py-8">
         <Link to="/" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline mb-6">
           <ArrowLeft size={16} /> 홈으로 돌아가기

@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
+import SEO from '../components/SEO'
 
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEO title="이용약관" description="스마트 스케줄 이용약관. 서비스 이용 조건, 이용자의 권리와 의무를 안내합니다." path="/terms" />
       <div className="max-w-2xl mx-auto px-4 py-8">
         <Link to="/" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline mb-6">
           <ArrowLeft size={16} /> 홈으로 돌아가기

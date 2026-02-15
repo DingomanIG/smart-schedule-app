@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
+import SEO from '../components/SEO'
 
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEO title="개인정보처리방침" description="스마트 스케줄 개인정보처리방침. 수집하는 개인정보 항목, 이용 목적, 보유 기간 등을 안내합니다." path="/privacy" />
       <div className="max-w-2xl mx-auto px-4 py-8">
         <Link to="/" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline mb-6">
           <ArrowLeft size={16} /> 홈으로 돌아가기

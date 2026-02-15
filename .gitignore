@@ -1,0 +1,13 @@
+node_modules
+dist
+.env
+.env.local
+
+# IDE & tools
+.claude/
+.playwright-mcp/
+
+# Test artifacts
+test-*.png
+snapshot-*.md
+console-*.txt

@@ -4,6 +4,13 @@ import 'react-calendar/dist/Calendar.css'
 import { Clock, MapPin, Trash2 } from 'lucide-react'
 import { getEvents, deleteEvent } from '../services/schedule'
 
+const toLocalDateStr = (date) => {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 export default function CalendarView({ userId, refreshKey }) {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [events, setEvents] = useState([])
@@ -24,10 +31,10 @@ export default function CalendarView({ userId, refreshKey }) {
 
   // 선택된 날짜의 일정 필터링
   useEffect(() => {
-    const dateStr = selectedDate.toISOString().split('T')[0]
+    const dateStr = toLocalDateStr(selectedDate)
     const filtered = monthEvents.filter((evt) => {
       const evtDate = evt.startTime?.toDate?.()
-        ? evt.startTime.toDate().toISOString().split('T')[0]
+        ? toLocalDateStr(evt.startTime.toDate())
         : ''
       return evtDate === dateStr
     })
@@ -56,10 +63,10 @@ export default function CalendarView({ userId, refreshKey }) {
   // 일정 개수 배지 표시
   const tileContent = ({ date, view }) => {
     if (view !== 'month') return null
-    const dateStr = date.toISOString().split('T')[0]
+    const dateStr = toLocalDateStr(date)
     const count = monthEvents.filter((evt) => {
       const evtDate = evt.startTime?.toDate?.()
-        ? evt.startTime.toDate().toISOString().split('T')[0]
+        ? toLocalDateStr(evt.startTime.toDate())
         : ''
       return evtDate === dateStr
     }).length

@@ -32,6 +32,9 @@ function getMondayOfWeek(date) {
 export function parseDateFromText(text, now = new Date()) {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
+  // 내일모레 (=모레, 오늘+2일) — "내일"보다 먼저 체크
+  if (/내일\s*모[레래]/.test(text)) return formatDate(addDays(today, 2))
+
   // 오늘/내일/모레/글피
   if (/오늘/.test(text)) return formatDate(today)
   if (/내일/.test(text)) return formatDate(addDays(today, 1))
@@ -90,6 +93,33 @@ export function parseDateFromText(text, now = new Date()) {
       year += 1
     }
     return formatDate(new Date(year, month - 1, day))
+  }
+
+  // 단독 X일 (월 없이 일만 명시) - "18일", "25일" 등
+  const bareDayMatch = text.match(/(\d{1,2})일/)
+  if (bareDayMatch) {
+    const day = parseInt(bareDayMatch[1], 10)
+    if (day >= 1 && day <= 31) {
+      let month = today.getMonth()
+      let year = today.getFullYear()
+      const candidate = new Date(year, month, day)
+      // 유효하지 않은 날짜 체크
+      if (candidate.getDate() !== day) {
+        return null
+      }
+      // 이미 지난 날짜면 다음 달
+      if (candidate < today) {
+        month += 1
+        if (month > 11) {
+          month = 0
+          year += 1
+        }
+        const nextMonth = new Date(year, month, day)
+        if (nextMonth.getDate() !== day) return null
+        return formatDate(nextMonth)
+      }
+      return formatDate(candidate)
+    }
   }
 
   return null

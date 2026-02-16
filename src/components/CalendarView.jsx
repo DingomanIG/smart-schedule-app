@@ -4,7 +4,7 @@ import 'react-calendar/dist/Calendar.css'
 import { Clock, MapPin, Trash2 } from 'lucide-react'
 import { getEvents, deleteEvent } from '../services/schedule'
 
-export default function CalendarView({ userId }) {
+export default function CalendarView({ userId, refreshKey }) {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [events, setEvents] = useState([])
   const [monthEvents, setMonthEvents] = useState([])
@@ -38,7 +38,7 @@ export default function CalendarView({ userId }) {
   useEffect(() => {
     setLoading(true)
     fetchMonthEvents(selectedDate).finally(() => setLoading(false))
-  }, [userId])
+  }, [userId, refreshKey])
 
   const handleActiveStartDateChange = ({ activeStartDate }) => {
     fetchMonthEvents(activeStartDate)
@@ -53,21 +53,28 @@ export default function CalendarView({ userId }) {
     }
   }
 
-  // 일정이 있는 날짜에 점 표시
+  // 일정 개수 배지 표시
   const tileContent = ({ date, view }) => {
     if (view !== 'month') return null
     const dateStr = date.toISOString().split('T')[0]
-    const hasEvent = monthEvents.some((evt) => {
+    const count = monthEvents.filter((evt) => {
       const evtDate = evt.startTime?.toDate?.()
         ? evt.startTime.toDate().toISOString().split('T')[0]
         : ''
       return evtDate === dateStr
-    })
-    return hasEvent ? (
-      <div className="flex justify-center">
-        <div className="w-1.5 h-1.5 bg-blue-600 rounded-full mt-0.5" />
+    }).length
+    if (count === 0) return null
+    const label = count > 99 ? '99+' : String(count)
+    return (
+      <div className="flex justify-center mt-0.5">
+        <span
+          title={`${count}개 일정`}
+          className="min-w-5 h-5 px-1.5 bg-rose-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-fadeIn"
+        >
+          {label}
+        </span>
       </div>
-    ) : null
+    )
   }
 
   const formatTime = (timestamp) => {

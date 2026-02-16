@@ -8,7 +8,7 @@ const initialMessage = {
   content: '안녕하세요! 일정을 말씀해주세요. 예: "내일 오후 2시 회의"',
 }
 
-export default function ChatInterface({ userId }) {
+export default function ChatInterface({ userId, onEventCreated }) {
   const [messages, setMessages] = useState([initialMessage])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -67,6 +67,7 @@ export default function ChatInterface({ userId }) {
         ...prev,
         { role: 'assistant', content: '일정이 저장되었습니다!' },
       ])
+      onEventCreated?.()
     } catch (err) {
       setMessages((prev) => [
         ...prev,

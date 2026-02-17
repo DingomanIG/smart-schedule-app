@@ -2,7 +2,7 @@ import { parseDateFromText } from '../utils/dateParser.js'
 
 const isDev = import.meta.env.DEV
 
-export async function parseSchedule(userMessage) {
+export async function parseSchedule(userMessage, recentEvents = [], lastEventContext = null) {
   const now = new Date()
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
   const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일']
@@ -16,13 +16,16 @@ export async function parseSchedule(userMessage) {
         content: `당신은 일정 파싱 전문가입니다.
 사용자 메시지에서 다음 정보를 JSON으로 추출하세요:
 {
+  "action": "create | move | update | delete",
+  "targetEventId": "기존 일정 ID 또는 null",
   "date": "YYYY-MM-DD",
   "time": "HH:MM",
   "title": "일정 제목",
   "duration": 60,
   "category": "meeting|personal|work|health|other",
   "attendees": [],
-  "location": ""
+  "location": "",
+  "updates": {}
 }
 
 현재 날짜: ${today} (${todayDay})
@@ -95,8 +98,46 @@ export async function parseSchedule(userMessage) {
 - 단어가 하나라도 남으면 그것이 제목입니다. 절대 "일정 제목" 같은 기본값을 사용하지 마세요
 - 정말 아무 단서가 없을 때만 "일정"이라고 하세요
 
+의도(action) 감지 규칙:
+- 새 일정 등록: action = "create"
+- 일정 이동/날짜·시간 변경: action = "move" (키워드: 옮겨, 변경, 바꿔, 이동)
+- 일정 수정(제목/장소 등): action = "update" (키워드: 제목 바꿔, 장소 변경)
+- 일정 삭제/취소: action = "delete" (키워드: 취소, 삭제, 빼줘)
+- 명확하지 않으면 action = "create"
+
+기존 일정 매칭 규칙:
+- 아래 "기존 일정 목록"에서 사용자가 언급한 일정을 제목·날짜·시간으로 매칭
+- 매칭된 일정의 ID를 targetEventId에 넣으세요
+- 매칭 실패 시 targetEventId = null
+
+최근 대화 맥락:
+- "마지막 대화 일정"이 제공되면, 특정 일정 미언급 시 이 일정을 대상으로 사용
+- 예: "금요일로 옮겨줘"만 하면 마지막 대화 일정이 이동 대상
+
+move 응답: date = 새 날짜, time = 새 시간(변경 없으면 null), targetEventId 필수
+delete 응답: targetEventId 필수, 나머지 불필요
+update 응답: targetEventId 필수, updates = 변경할 필드만 (예: {"title":"새 제목"})
+
 반드시 JSON만 응답하세요.`,
       },
+      ...(recentEvents.length > 0 || lastEventContext
+        ? [{
+            role: 'system',
+            content: [
+              recentEvents.length > 0
+                ? '기존 일정 목록:\n' + recentEvents.map(e => {
+                    const st = e.startTime?.toDate ? e.startTime.toDate() : new Date(e.startTime)
+                    const d = `${st.getFullYear()}-${String(st.getMonth() + 1).padStart(2, '0')}-${String(st.getDate()).padStart(2, '0')}`
+                    const t = `${String(st.getHours()).padStart(2, '0')}:${String(st.getMinutes()).padStart(2, '0')}`
+                    return `[ID:${e.id}] ${d} ${t} "${e.title}"`
+                  }).join('\n')
+                : null,
+              lastEventContext
+                ? `마지막 대화 일정: [ID:${lastEventContext.id}] ${lastEventContext.date} ${lastEventContext.time} "${lastEventContext.title}"`
+                : null,
+            ].filter(Boolean).join('\n\n'),
+          }]
+        : []),
       {
         role: 'user',
         content: userMessage,
@@ -138,10 +179,17 @@ export async function parseSchedule(userMessage) {
 
   const parsed = JSON.parse(jsonMatch[0])
 
-  // 프론트엔드 날짜 파서로 GPT 날짜 교정
-  const frontendDate = parseDateFromText(userMessage)
-  if (frontendDate) {
-    parsed.date = frontendDate
+  // action 기본값 설정 (하위 호환)
+  if (!parsed.action) {
+    parsed.action = 'create'
+  }
+
+  // 프론트엔드 날짜 파서로 GPT 날짜 교정 (create일 때만)
+  if (parsed.action === 'create') {
+    const frontendDate = parseDateFromText(userMessage)
+    if (frontendDate) {
+      parsed.date = frontendDate
+    }
   }
 
   return parsed

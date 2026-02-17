@@ -42,11 +42,11 @@ export default function ContactForm() {
     return (
       <div className="text-center py-12">
         <CheckCircle size={48} className="mx-auto text-green-500 mb-4" />
-        <p className="text-lg font-medium text-gray-900">문의가 전송되었습니다!</p>
-        <p className="text-sm text-gray-500 mt-1">빠른 시일 내에 답변 드리겠습니다.</p>
+        <p className="text-lg font-medium text-gray-900 dark:text-white">문의가 전송되었습니다!</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">빠른 시일 내에 답변 드리겠습니다.</p>
         <button
           onClick={() => setSubmitted(false)}
-          className="mt-4 text-sm text-blue-600 hover:underline"
+          className="mt-4 text-sm text-blue-600 dark:text-blue-400 hover:underline"
         >
           새 문의 작성
         </button>
@@ -56,39 +56,39 @@ export default function ContactForm() {
 
   return (
     <div className="max-w-md mx-auto p-4">
-      <h2 className="text-lg font-bold text-gray-900 mb-4">문의하기</h2>
+      <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">문의하기</h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">이메일</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">이메일</label>
           <input
             type="email"
             name="email"
             required
             placeholder="email@example.com"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-600"
+            className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-600 dark:focus:border-blue-400 placeholder:text-gray-400 dark:placeholder:text-gray-500"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">제목</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">제목</label>
           <input
             type="text"
             name="subject"
             required
             placeholder="문의 제목"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-600"
+            className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-600 dark:focus:border-blue-400 placeholder:text-gray-400 dark:placeholder:text-gray-500"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">내용</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">내용</label>
           <textarea
             name="message"
             required
             rows={5}
             placeholder="문의 내용을 입력해주세요"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-600 resize-none"
+            className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-600 dark:focus:border-blue-400 resize-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
           />
         </div>
 
@@ -105,7 +105,7 @@ export default function ContactForm() {
       </form>
 
       {!accessKey && (
-        <p className="text-xs text-gray-400 mt-4 text-center">
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-4 text-center">
           Web3Forms 키가 설정되지 않았습니다. .env에 VITE_WEB3FORMS_KEY를 추가해주세요.
         </p>
       )}

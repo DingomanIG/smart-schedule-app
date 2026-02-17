@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Clock, MapPin, X } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { ChevronLeft, ChevronRight, Clock, MapPin, Trash2, X } from 'lucide-react'
 
 const START_HOUR = 0
 const END_HOUR = 24
@@ -120,8 +120,11 @@ const layoutEvents = (dayEvents, date) => {
   return result
 }
 
-export default function WeekView({ selectedDate, setSelectedDate, events, onDelete }) {
+export default function WeekView({ selectedDate, setSelectedDate, events, onDelete, onMoveEvent }) {
   const [popup, setPopup] = useState(null)
+  const [dropTargetCol, setDropTargetCol] = useState(null)
+  const [dropTimeIndicator, setDropTimeIndicator] = useState(null) // { col, hour }
+  const isDraggingRef = useRef(false)
   const weekDates = getWeekDates(selectedDate)
   const today = toLocalDateStr(new Date())
 
@@ -148,6 +151,7 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
 
   const handleEventClick = (evt, e) => {
     e.stopPropagation()
+    if (isDraggingRef.current) return
     setPopup(popup?.id === evt.id ? null : evt)
   }
 
@@ -155,19 +159,19 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
     <div className="flex flex-col h-full gap-2">
       {/* 주 네비게이션 */}
       <div className="flex items-center justify-between px-1">
-        <button onClick={() => goWeek(-1)} className="p-1 hover:bg-gray-100 rounded">
-          <ChevronLeft size={18} />
+        <button onClick={() => goWeek(-1)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+          <ChevronLeft size={18} className="text-gray-700 dark:text-gray-300" />
         </button>
-        <span className="text-sm font-medium text-gray-700">{weekLabel}</span>
-        <button onClick={() => goWeek(1)} className="p-1 hover:bg-gray-100 rounded">
-          <ChevronRight size={18} />
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{weekLabel}</span>
+        <button onClick={() => goWeek(1)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+          <ChevronRight size={18} className="text-gray-700 dark:text-gray-300" />
         </button>
       </div>
 
       {/* 주간 그리드 */}
-      <div className="border border-gray-200 rounded-lg overflow-y-auto flex-1 min-h-0 thin-scrollbar" onClick={() => setPopup(null)}>
+      <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-y-auto flex-1 min-h-0 thin-scrollbar" onClick={() => setPopup(null)}>
         {/* 요일 헤더 (sticky) */}
-        <div className="grid grid-cols-[40px_repeat(7,1fr)] border-b border-gray-200 bg-gray-50 sticky top-0 z-30">
+        <div className="grid grid-cols-[40px_repeat(7,1fr)] border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 sticky top-0 z-30">
           <div />
           {weekDates.map((date, i) => {
             const isToday = toLocalDateStr(date) === today
@@ -175,15 +179,15 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
             return (
               <div
                 key={i}
-                className={`text-center py-1.5 text-xs border-l border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors ${
-                  isToday ? 'bg-blue-50' : ''
+                className={`text-center py-1.5 text-xs border-l border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                  isToday ? 'bg-blue-50 dark:bg-blue-900/20' : ''
                 }`}
                 onClick={(e) => { e.stopPropagation(); setSelectedDate(date) }}
               >
-                <div className={`font-medium ${isToday ? 'text-blue-600' : 'text-gray-600'}`}>
+                <div className={`font-medium ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`}>
                   {DAY_LABELS[i]}
                 </div>
-                <div className={`${isToday ? 'bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center mx-auto text-[11px] font-bold' : 'text-[11px] text-gray-500'}`}>
+                <div className={`${isToday ? 'bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center mx-auto text-[11px] font-bold' : 'text-[11px] text-gray-500 dark:text-gray-400'}`}>
                   {date.getDate()}
                 </div>
                 {dayEventCount > 0 && (
@@ -206,7 +210,7 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
                 return (
                   <span
                     key={hour}
-                    className="absolute text-[10px] text-gray-400 pl-1 leading-none"
+                    className="absolute text-[10px] text-gray-400 dark:text-gray-500 pl-1 leading-none"
                     style={{ top: `${top - 5}px` }}
                   >
                     {String(hour).padStart(2, '0')}:00
@@ -224,7 +228,38 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
               return (
                 <div
                   key={colIdx}
-                  className={`relative border-l border-gray-200 ${isToday ? 'bg-blue-50/20' : ''}`}
+                  className={`relative border-l border-gray-200 dark:border-gray-700 ${isToday ? 'bg-blue-50/20 dark:bg-blue-900/10' : ''} ${dropTargetCol === colIdx ? 'bg-blue-100/30 dark:bg-blue-900/20' : ''}`}
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    e.dataTransfer.dropEffect = 'move'
+                    setDropTargetCol(colIdx)
+                    const rect = e.currentTarget.getBoundingClientRect()
+                    const y = e.clientY - rect.top
+                    const rawHour = y / 48
+                    const snapped = Math.round(rawHour * 6) / 6
+                    const clamped = Math.max(0, Math.min(23 + 50/60, snapped))
+                    setDropTimeIndicator({ col: colIdx, hour: clamped })
+                  }}
+                  onDragEnter={() => setDropTargetCol(colIdx)}
+                  onDragLeave={(e) => {
+                    if (!e.currentTarget.contains(e.relatedTarget)) {
+                      setDropTargetCol(null)
+                      setDropTimeIndicator(null)
+                    }
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    setDropTargetCol(null)
+                    setDropTimeIndicator(null)
+                    const eventId = e.dataTransfer.getData('text/plain')
+                    if (!eventId || !onMoveEvent) return
+                    const rect = e.currentTarget.getBoundingClientRect()
+                    const y = e.clientY - rect.top
+                    const rawHour = y / 48
+                    const snappedHour = Math.round(rawHour * 6) / 6
+                    const clampedHour = Math.max(0, Math.min(23 + 50/60, snappedHour))
+                    onMoveEvent(eventId, toLocalDateStr(date), clampedHour)
+                  }}
                 >
                   {/* 시간 그리드 라인 */}
                   {FULL_HOURS.map((hour) => {
@@ -232,12 +267,12 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
                     return (
                       <div key={hour}>
                         <div
-                          className="absolute left-0 right-0 border-t border-gray-200"
+                          className="absolute left-0 right-0 border-t border-gray-200 dark:border-gray-700"
                           style={{ top: `${top}px` }}
                         />
                         {hour < END_HOUR && (
                           <div
-                            className="absolute left-0 right-0 border-t border-gray-100 border-dashed"
+                            className="absolute left-0 right-0 border-t border-gray-100 dark:border-gray-800 border-dashed"
                             style={{ top: `${top + 24}px` }}
                           />
                         )}
@@ -248,7 +283,7 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
                   {/* 이벤트 블록 */}
                   {laid.map((item) => {
                     const top = (item.start - START_HOUR) * 48
-                    const height = Math.max((item.end - item.start) * 48, 20)
+                    const height = Math.max((item.end - item.start) * 48, 28)
                     const width = `calc(${100 / item.totalColumns}% - 2px)`
                     const left = `calc(${(item.column / item.totalColumns) * 100}% + 1px)`
                     const isActive = popup?.id === item.evt.id
@@ -256,12 +291,25 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
                     return (
                       <div
                         key={item.evt.id}
-                        className={`absolute rounded px-1 py-0.5 overflow-hidden cursor-pointer transition-all border ${
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/plain', item.evt.id)
+                          e.dataTransfer.effectAllowed = 'move'
+                          e.dataTransfer.setDragImage(e.currentTarget, 0, 0)
+                          isDraggingRef.current = true
+                          e.stopPropagation()
+                        }}
+                        onDragEnd={() => {
+                          setTimeout(() => { isDraggingRef.current = false }, 50)
+                          setDropTimeIndicator(null)
+                          setDropTargetCol(null)
+                        }}
+                        className={`absolute rounded px-1 py-0.5 overflow-hidden cursor-grab active:cursor-grabbing transition-all border ${
                           isActive
                             ? 'bg-blue-600 border-blue-700 shadow-md z-20'
                             : 'bg-blue-500 border-blue-600 hover:bg-blue-600 hover:shadow-sm z-10'
                         }`}
-                        style={{ top: `${top}px`, height: `${height}px`, width, left, minHeight: '20px' }}
+                        style={{ top: `${top}px`, height: `${height}px`, width, left, minHeight: '28px' }}
                         onClick={(e) => handleEventClick(item.evt, e)}
                       >
                         <p className="text-[9px] font-semibold text-white truncate leading-tight">
@@ -270,6 +318,20 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
                       </div>
                     )
                   })}
+
+                  {/* 드롭 시간 인디케이터 */}
+                  {dropTimeIndicator && dropTimeIndicator.col === colIdx && (
+                    <div
+                      className="absolute left-0 right-0 z-30 pointer-events-none flex items-center"
+                      style={{ top: `${dropTimeIndicator.hour * 48}px`, transform: 'translateY(-50%)' }}
+                    >
+                      <div className="w-2 h-2 bg-blue-500 rounded-full -ml-1" />
+                      <div className="flex-1 border-t-2 border-blue-500 border-dashed" />
+                      <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-800 px-1 rounded shadow-sm ml-0.5">
+                        {`${String(Math.floor(dropTimeIndicator.hour)).padStart(2, '0')}:${String(Math.round((dropTimeIndicator.hour % 1) * 60)).padStart(2, '0')}`}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )
             })}
@@ -279,32 +341,34 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
 
       {/* 이벤트 상세 팝업 */}
       {popup && (
-        <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-lg space-y-2">
-          <div className="flex items-start justify-between">
-            <p className="text-sm font-semibold text-gray-900">{popup.title}</p>
-            <button onClick={() => setPopup(null)} className="text-gray-400 hover:text-gray-600 p-0.5">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 flex items-start justify-between">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">{popup.title}</p>
+            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+              <Clock size={12} />
+              <span>
+                {formatTime(popup.startTime)}
+                {popup.endTime && ` ~ ${formatTime(popup.endTime)}`}
+              </span>
+            </div>
+            {popup.location && (
+              <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                <MapPin size={12} />
+                <span>{popup.location}</span>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => { onDelete(popup.id); setPopup(null) }}
+              className="text-gray-400 dark:text-gray-500 hover:text-red-500 p-1"
+            >
+              <Trash2 size={14} />
+            </button>
+            <button onClick={() => setPopup(null)} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1">
               <X size={14} />
             </button>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-gray-500">
-            <Clock size={12} />
-            <span>
-              {formatTime(popup.startTime)}
-              {popup.endTime && ` ~ ${formatTime(popup.endTime)}`}
-            </span>
-          </div>
-          {popup.location && (
-            <div className="flex items-center gap-1.5 text-xs text-gray-500">
-              <MapPin size={12} />
-              <span>{popup.location}</span>
-            </div>
-          )}
-          <button
-            onClick={() => { onDelete(popup.id); setPopup(null) }}
-            className="text-xs text-red-500 hover:text-red-700 font-medium"
-          >
-            삭제
-          </button>
         </div>
       )}
     </div>

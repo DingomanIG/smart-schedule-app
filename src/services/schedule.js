@@ -52,6 +52,28 @@ export async function updateEvent(eventId, updates) {
   await updateDoc(eventRef, updates)
 }
 
+// Move - 일정 날짜/시간 이동
+export async function moveEvent(eventId, oldEvent, newDateStr, newHour = null) {
+  const oldStart = oldEvent.startTime.toDate()
+  const [year, month, day] = newDateStr.split('-').map(Number)
+  const newStart = new Date(year, month - 1, day)
+
+  if (newHour !== null) {
+    newStart.setHours(Math.floor(newHour), Math.round((newHour % 1) * 60), 0, 0)
+  } else {
+    newStart.setHours(oldStart.getHours(), oldStart.getMinutes(), oldStart.getSeconds(), 0)
+  }
+
+  const updates = { startTime: Timestamp.fromDate(newStart) }
+
+  if (oldEvent.endTime?.toDate) {
+    const duration = oldEvent.endTime.toDate().getTime() - oldStart.getTime()
+    updates.endTime = Timestamp.fromDate(new Date(newStart.getTime() + duration))
+  }
+
+  await updateEvent(eventId, updates)
+}
+
 // Delete - 일정 삭제
 export async function deleteEvent(eventId) {
   const eventRef = doc(db, 'events', eventId)

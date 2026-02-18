@@ -89,6 +89,8 @@ const en = {
 
     // Calendar view
     minuteUnit: 'min',
+    markComplete: 'Mark as complete',
+    markIncomplete: 'Mark as incomplete',
 }
 
 export default en

@@ -74,6 +74,12 @@ export async function moveEvent(eventId, oldEvent, newDateStr, newHour = null) {
   await updateEvent(eventId, updates)
 }
 
+// Toggle completed - 일정 완료/미완료 토글
+export async function toggleEventCompleted(eventId, completed) {
+  const eventRef = doc(db, 'events', eventId)
+  await updateDoc(eventRef, { completed: !completed })
+}
+
 // Delete - 일정 삭제
 export async function deleteEvent(eventId) {
   const eventRef = doc(db, 'events', eventId)

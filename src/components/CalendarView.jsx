@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
-import { Clock, MapPin, Trash2, GripVertical } from 'lucide-react'
-import { getEvents, deleteEvent, moveEvent } from '../services/schedule'
+import { Clock, MapPin, Trash2, GripVertical, CheckCircle2, Circle } from 'lucide-react'
+import { getEvents, deleteEvent, moveEvent, toggleEventCompleted } from '../services/schedule'
 import DayView from './DayView'
 import WeekView from './WeekView'
 import { useLanguage } from '../hooks/useLanguage'
@@ -83,6 +83,17 @@ export default function CalendarView({ userId, refreshKey }) {
 
   const handleActiveStartDateChange = ({ activeStartDate }) => {
     fetchMonthEvents(activeStartDate)
+  }
+
+  const handleToggleCompleted = async (eventId, currentCompleted) => {
+    try {
+      await toggleEventCompleted(eventId, currentCompleted)
+      setMonthEvents((prev) =>
+        prev.map((e) => e.id === eventId ? { ...e, completed: !currentCompleted } : e)
+      )
+    } catch (err) {
+      console.error('완료 토글 오류:', err)
+    }
   }
 
   const handleDelete = async (eventId) => {
@@ -201,7 +212,20 @@ export default function CalendarView({ userId, refreshKey }) {
             </h3>
 
             {loading ? (
-              <p className="text-sm text-gray-400 dark:text-gray-500">{t('loading')}</p>
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 animate-pulse">
+                    <div className="flex items-start gap-2">
+                      <div className="w-3.5 h-3.5 bg-gray-200 dark:bg-gray-600 rounded mt-0.5" />
+                      <div className="w-4 h-4 bg-gray-200 dark:bg-gray-600 rounded-full mt-0.5" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-3/4" />
+                        <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-1/2" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : events.length === 0 ? (
               <p className="text-sm text-gray-400 dark:text-gray-500">{t('noEvents')}</p>
             ) : (
@@ -222,8 +246,18 @@ export default function CalendarView({ userId, refreshKey }) {
                   >
                     <div className="flex items-start gap-2">
                       <GripVertical size={14} className="text-gray-300 dark:text-gray-600 mt-0.5 shrink-0" />
+                      <button
+                        onClick={() => handleToggleCompleted(evt.id, !!evt.completed)}
+                        className="mt-0.5 shrink-0 text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                        title={evt.completed ? t('markIncomplete') : t('markComplete')}
+                      >
+                        {evt.completed
+                          ? <CheckCircle2 size={16} className="text-green-500 dark:text-green-400" />
+                          : <Circle size={16} />
+                        }
+                      </button>
                       <div className="space-y-1">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{evt.title}</p>
+                        <p className={`text-sm font-semibold ${evt.completed ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>{evt.title}</p>
                         <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                           <Clock size={12} />
                           <span>{formatTime(evt.startTime)}</span>

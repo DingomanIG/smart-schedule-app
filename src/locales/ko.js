@@ -89,6 +89,8 @@ const ko = {
 
     // Calendar view
     minuteUnit: '분',
+    markComplete: '완료로 표시',
+    markIncomplete: '미완료로 표시',
 }
 
 export default ko

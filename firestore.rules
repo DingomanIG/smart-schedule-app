@@ -1,0 +1,43 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 인증된 사용자만 접근 가능
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // 리소스 소유자 확인
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // events 컬렉션: 본인 데이터만 CRUD
+    match /events/{eventId} {
+      allow read, update, delete: if isAuthenticated()
+        && isOwner(resource.data.userId);
+      allow create: if isAuthenticated()
+        && isOwner(request.resource.data.userId);
+    }
+
+    // users 컬렉션: 본인 프로필만 접근
+    match /users/{userId} {
+      allow read, write: if isAuthenticated()
+        && isOwner(userId);
+    }
+
+    // chat_messages 컬렉션: 본인 메시지만 접근
+    match /chat_messages/{messageId} {
+      allow read, update, delete: if isAuthenticated()
+        && isOwner(resource.data.userId);
+      allow create: if isAuthenticated()
+        && isOwner(request.resource.data.userId);
+    }
+
+    // 기본 거부
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

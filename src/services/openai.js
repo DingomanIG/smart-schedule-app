@@ -194,3 +194,157 @@ update 응답: targetEventId 필수, updates = 변경할 필드만 (예: {"title
 
   return parsed
 }
+
+/**
+ * 일상 스케줄 생성 - GPT-4o-mini로 하루 일정 생성
+ * @param {object} preferences - { wakeUp, bedTime, meals, commute, routines }
+ * @returns {object} { action: "create_batch", events: [...] }
+ */
+export async function generateDailySchedule(preferences) {
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+
+  const mealInfo = preferences.meals?.regular === false
+    ? '불규칙'
+    : `아침 ${preferences.meals?.breakfast || '08:00'}, 점심 ${preferences.meals?.lunch || '12:00'}, 저녁 ${preferences.meals?.dinner || '19:00'}`
+
+  const userInfo = `
+사용자 정보:
+- 기상: ${preferences.wakeUp || '08:00'}
+- 취침: ${preferences.bedTime || '23:00'}
+- 식사: ${mealInfo}
+- 출퇴근: ${preferences.commute?.hasCommute
+    ? `${preferences.commute.startTime}~${preferences.commute.endTime}`
+    : '없음'}
+- 루틴: ${preferences.routines?.length > 0 ? preferences.routines.join(', ') : '없음'}
+`.trim()
+
+  const body = {
+    model: 'gpt-4o-mini',
+    messages: [
+      {
+        role: 'system',
+        content: `당신은 일상 스케줄 설계 전문가입니다.
+사용자의 생활 패턴을 바탕으로 하루 일정을 JSON으로 생성하세요.
+
+규칙:
+1. 별도의 "기상"/"취침" 이벤트 대신, 마지막에 "수면" 이벤트 1개를 포함하세요. 시작 시간=취침 시간, duration=취침~기상까지 분(예: 23:00~08:00이면 540분)
+2. 반드시 아침 식사, 점심 식사, 저녁 식사 3끼를 포함하세요 (사용자가 불규칙이라고 하지 않는 한)
+3. 실제 활동만 이벤트로 생성 (자유 시간, 여가 시간, 휴식 등 빈 시간은 이벤트로 만들지 않음)
+4. 식사 시간 최소 30분 확보
+5. 출퇴근이 있으면: 출근 준비(30분) + 출근 + 업무 시간 + 퇴근 포함
+6. 루틴 배치 규칙:
+   - 운동 → 출근 전 또는 퇴근 후
+   - 독서 → 저녁/취침 전
+   - 명상 → 기상 직후 또는 취침 전
+   - 기타 루틴 → 빈 시간에 자연스럽게 배치
+7. 활동 사이 10~15분 버퍼 (이동/준비 시간, 이벤트로 만들지 않음)
+8. "자유 시간", "여가", "휴식" 같은 빈 시간은 절대 이벤트로 만들지 마세요
+9. category는 반드시 다음 중 하나: routine, meal, commute, personal, health
+10. personal 카테고리는 하루 1개만, 같은 루틴도 1회만 배치
+11. 모든 제목은 한국어로 작성
+12. duration은 분 단위
+13. **절대 시간 겹침 금지**: 모든 이벤트는 이전 이벤트의 종료 시간(시작시간+duration) 이후에 시작해야 합니다. 예를 들어 운동이 08:00~09:00이면 아침 식사는 09:10 이후에 배치하세요. 이벤트를 시간순으로 정렬하고 겹치지 않는지 반드시 확인하세요.
+
+오늘 날짜: ${today}
+
+응답 형식 (JSON만 반환):
+{
+  "action": "create_batch",
+  "events": [
+    { "title": "수면", "time": "23:00", "duration": 540, "category": "routine" }
+  ]
+}`,
+      },
+      {
+        role: 'user',
+        content: userInfo,
+      },
+    ],
+    temperature: 0.5,
+  }
+
+  let data
+
+  if (isDev) {
+    const response = await fetch('/api/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify(body),
+    })
+    data = await response.json()
+  } else {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    data = await response.json()
+  }
+
+  if (data.error) {
+    throw new Error(data.error.message || 'OpenAI API 호출 실패')
+  }
+
+  const result = data.choices[0].message.content
+  const jsonMatch = result.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) throw new Error('GPT 응답 파싱 실패')
+
+  const parsed = JSON.parse(jsonMatch[0])
+
+  if (!parsed.events || !Array.isArray(parsed.events) || parsed.events.length === 0) {
+    throw new Error('생성된 스케줄이 비어있습니다')
+  }
+
+  // 시간 겹침 후처리 보정
+  const fixedEvents = fixOverlappingEvents(parsed.events)
+
+  return {
+    action: 'create_batch',
+    date: today,
+    events: fixedEvents,
+  }
+}
+
+/**
+ * 이벤트 시간 겹침 자동 보정
+ * - 시간순 정렬 후 겹치는 이벤트를 뒤로 밀어 10분 버퍼 확보
+ * - "수면" 이벤트는 맨 마지막에 고정
+ */
+function fixOverlappingEvents(events) {
+  const BUFFER_MIN = 10
+
+  const timeToMin = (t) => {
+    const [h, m] = t.split(':').map(Number)
+    return h * 60 + (m || 0)
+  }
+  const minToTime = (m) => {
+    const wrapped = ((m % 1440) + 1440) % 1440
+    return `${String(Math.floor(wrapped / 60)).padStart(2, '0')}:${String(wrapped % 60).padStart(2, '0')}`
+  }
+
+  // 수면 이벤트 분리 (겹침 보정 대상에서 제외)
+  const sleepIdx = events.findIndex(e => e.title === '수면')
+  const sleepEvent = sleepIdx !== -1 ? events[sleepIdx] : null
+  const dayEvents = events.filter((_, i) => i !== sleepIdx)
+
+  // 시간순 정렬
+  dayEvents.sort((a, b) => timeToMin(a.time) - timeToMin(b.time))
+
+  // 겹침 보정
+  for (let i = 1; i < dayEvents.length; i++) {
+    const prev = dayEvents[i - 1]
+    const prevEnd = timeToMin(prev.time) + (prev.duration || 30)
+    const currStart = timeToMin(dayEvents[i].time)
+
+    if (currStart < prevEnd + BUFFER_MIN) {
+      dayEvents[i].time = minToTime(prevEnd + BUFFER_MIN)
+    }
+  }
+
+  if (sleepEvent) dayEvents.push(sleepEvent)
+  return dayEvents
+}

@@ -283,10 +283,26 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
                   {/* 이벤트 블록 */}
                   {laid.map((item) => {
                     const top = (item.start - START_HOUR) * 48
-                    const height = Math.max((item.end - item.start) * 48, 28)
-                    const width = `calc(${100 / item.totalColumns}% - 2px)`
-                    const left = `calc(${(item.column / item.totalColumns) * 100}% + 1px)`
+                    const height = Math.max((item.end - item.start) * 48, 22)
+                    const width = `calc(${100 / item.totalColumns}% - 3px)`
+                    const left = `calc(${(item.column / item.totalColumns) * 100}% + 1.5px)`
                     const isActive = popup?.id === item.evt.id
+                    const isHelper = item.evt.createdVia === 'helper'
+
+                    const startH = Math.floor(item.start)
+                    const startM = Math.round((item.start - startH) * 60)
+                    const timeStr = `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`
+
+                    let colorClasses
+                    if (isHelper) {
+                      colorClasses = isActive
+                        ? 'bg-emerald-600 border-emerald-700 shadow-md z-20'
+                        : 'bg-emerald-500 border-emerald-600 hover:bg-emerald-600 hover:shadow-sm z-10'
+                    } else {
+                      colorClasses = isActive
+                        ? 'bg-blue-600 border-blue-700 shadow-md z-20'
+                        : 'bg-blue-500 border-blue-600 hover:bg-blue-600 hover:shadow-sm z-10'
+                    }
 
                     return (
                       <div
@@ -304,17 +320,18 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
                           setDropTimeIndicator(null)
                           setDropTargetCol(null)
                         }}
-                        className={`absolute rounded px-1 py-0.5 overflow-hidden cursor-grab active:cursor-grabbing transition-all border ${
-                          isActive
-                            ? 'bg-blue-600 border-blue-700 shadow-md z-20'
-                            : 'bg-blue-500 border-blue-600 hover:bg-blue-600 hover:shadow-sm z-10'
-                        }`}
-                        style={{ top: `${top}px`, height: `${height}px`, width, left, minHeight: '28px' }}
+                        className={`absolute rounded-sm px-1 py-px overflow-hidden cursor-grab active:cursor-grabbing transition-all border ${colorClasses}`}
+                        style={{ top: `${top}px`, height: `${height}px`, width, left, minHeight: '22px' }}
                         onClick={(e) => handleEventClick(item.evt, e)}
                       >
-                        <p className="text-[9px] font-semibold text-white truncate leading-tight">
+                        <p className="text-[10px] font-bold text-white truncate leading-tight">
                           {item.evt.title}
                         </p>
+                        {height >= 32 && (
+                          <p className="text-[9px] text-white/75 leading-tight truncate">
+                            {timeStr}
+                          </p>
+                        )}
                       </div>
                     )
                   })}

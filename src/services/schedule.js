@@ -9,6 +9,7 @@ import {
   where,
   orderBy,
   Timestamp,
+  writeBatch,
 } from 'firebase/firestore'
 import { db } from './firebase'
 
@@ -84,4 +85,49 @@ export async function toggleEventCompleted(eventId, completed) {
 export async function deleteEvent(eventId) {
   const eventRef = doc(db, 'events', eventId)
   await deleteDoc(eventRef)
+}
+
+// Delete All - 전체 일정 삭제 (테스트용)
+export async function deleteAllEvents(userId) {
+  const q = query(
+    collection(db, 'events'),
+    where('userId', '==', userId)
+  )
+  const snapshot = await getDocs(q)
+  if (snapshot.empty) return 0
+
+  const batch = writeBatch(db)
+  snapshot.docs.forEach((d) => batch.delete(d.ref))
+  await batch.commit()
+  return snapshot.size
+}
+
+// Batch Create - 일상 도우미 일괄 일정 생성
+export async function addBatchEvents(userId, events, date) {
+  const batch = writeBatch(db)
+  const eventsRef = collection(db, 'events')
+
+  events.forEach((event) => {
+    const startDate = new Date(`${date}T${event.time}`)
+    if (isNaN(startDate.getTime())) return
+
+    const endDate = event.duration
+      ? new Date(startDate.getTime() + event.duration * 60000)
+      : null
+
+    const newDocRef = doc(eventsRef)
+    batch.set(newDocRef, {
+      userId,
+      title: event.title,
+      startTime: Timestamp.fromDate(startDate),
+      endTime: endDate ? Timestamp.fromDate(endDate) : null,
+      category: event.category || 'general',
+      location: '',
+      attendees: [],
+      createdAt: Timestamp.now(),
+      createdVia: 'helper',
+    })
+  })
+
+  await batch.commit()
 }

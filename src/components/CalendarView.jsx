@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
 import { Clock, MapPin, Trash2, GripVertical, CheckCircle2, Circle } from 'lucide-react'
@@ -35,6 +35,30 @@ export default function CalendarView({ userId, refreshKey }) {
   const [monthEvents, setMonthEvents] = useState([])
   const [loading, setLoading] = useState(false)
   const [draggingEvent, setDraggingEvent] = useState(null)
+  const [now, setNow] = useState(new Date())
+  const nowTimerRef = useRef(null)
+
+  // 현재 시간 매분 업데이트
+  useEffect(() => {
+    const updateNow = () => setNow(new Date())
+    const msUntilNextMinute = (60 - new Date().getSeconds()) * 1000
+    const timeout = setTimeout(() => {
+      updateNow()
+      nowTimerRef.current = setInterval(updateNow, 60000)
+    }, msUntilNextMinute)
+    return () => {
+      clearTimeout(timeout)
+      if (nowTimerRef.current) clearInterval(nowTimerRef.current)
+    }
+  }, [])
+
+  // 현재 진행 중인 일정 찾기
+  const currentEvent = monthEvents.find((evt) => {
+    const start = evt.startTime?.toDate?.()
+    if (!start) return false
+    const end = evt.endTime?.toDate?.() || new Date(start.getTime() + 3600000)
+    return start <= now && now < end
+  })
 
   // 일정 이동 핸들러
   const handleMoveEvent = async (eventId, newDateStr, newHour = null) => {
@@ -170,20 +194,42 @@ export default function CalendarView({ userId, refreshKey }) {
 
   return (
     <div className="p-4 flex flex-col gap-3 h-full">
-      {/* 뷰 전환 버튼 */}
-      <div className="flex gap-1 shrink-0">
-        {VIEW_MODES.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setViewMode(key)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center min-w-[64px] ${viewMode === key
-              ? 'bg-blue-500 text-white'
-              : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-          >
-            {label}
-          </button>
-        ))}
+      {/* 뷰 전환 버튼 + 현재 시간/일정 */}
+      <div className="flex items-center justify-between gap-2 shrink-0">
+        <div className="flex gap-1">
+          {VIEW_MODES.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setViewMode(key)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center min-w-[64px] ${viewMode === key
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* 진행 중 일정 + 현재 시간 */}
+        <div className="flex items-center gap-2 text-xs">
+          {currentEvent && (
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg max-w-[200px]">
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+              </span>
+              <span className="text-green-700 dark:text-green-300 truncate font-medium" title={currentEvent.title}>
+                {currentEvent.title}
+              </span>
+            </div>
+          )}
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <span className="font-semibold text-blue-700 dark:text-blue-300 tabular-nums">
+              {now.toLocaleTimeString(lang === 'en' ? 'en-US' : 'ko-KR', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* 월간 뷰 */}
@@ -241,8 +287,11 @@ export default function CalendarView({ userId, refreshKey }) {
                       setDraggingEvent(evt)
                     }}
                     onDragEnd={() => setDraggingEvent(null)}
-                    className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 flex items-start justify-between cursor-grab active:cursor-grabbing transition-opacity ${draggingEvent?.id === evt.id ? 'opacity-40' : ''
-                      }`}
+                    className={`bg-white dark:bg-gray-800 border rounded-xl p-3 flex items-start justify-between cursor-grab active:cursor-grabbing transition-opacity ${
+                      evt.createdVia === 'helper'
+                        ? 'border-emerald-300 dark:border-emerald-700'
+                        : 'border-gray-200 dark:border-gray-700'
+                    } ${draggingEvent?.id === evt.id ? 'opacity-40' : ''}`}
                   >
                     <div className="flex items-start gap-2">
                       <GripVertical size={14} className="text-gray-300 dark:text-gray-600 mt-0.5 shrink-0" />

@@ -4,8 +4,10 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from 'firebase/auth'
-import { doc, setDoc, Timestamp } from 'firebase/firestore'
+import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore'
 import { auth, db, isFirebaseConfigured } from '../services/firebase'
 
 export function useAuth() {
@@ -42,6 +44,24 @@ export function useAuth() {
     return result.user
   }
 
+  const loginWithGoogle = async () => {
+    const provider = new GoogleAuthProvider()
+    const result = await signInWithPopup(auth, provider)
+    const userRef = doc(db, 'users', result.user.uid)
+    const snap = await getDoc(userRef)
+    if (!snap.exists()) {
+      await setDoc(userRef, {
+        userId: result.user.uid,
+        email: result.user.email,
+        displayName: result.user.displayName,
+        photoURL: result.user.photoURL,
+        provider: 'google',
+        createdAt: Timestamp.now(),
+      })
+    }
+    return result.user
+  }
+
   const logout = () => {
     if (!isFirebaseConfigured) {
       setUser(null)
@@ -50,5 +70,5 @@ export function useAuth() {
     return signOut(auth)
   }
 
-  return { user, loading, login, register, logout }
+  return { user, loading, login, register, loginWithGoogle, logout }
 }

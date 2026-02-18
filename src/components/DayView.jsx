@@ -105,14 +105,19 @@ export default function DayView({ selectedDate, setSelectedDate, events, onDelet
           dayEvents.map((evt) => {
             const priority = evt.priority || 'medium'
             const category = evt.category || '기타'
-            const priorityBar = PRIORITY_COLORS[priority] || PRIORITY_COLORS.medium
+            const isHelper = evt.createdVia === 'helper'
+            const priorityBar = isHelper ? 'bg-emerald-500' : (PRIORITY_COLORS[priority] || PRIORITY_COLORS.medium)
             const categoryStyle = CATEGORY_STYLES[category] || CATEGORY_STYLES['기타']
             const isConfirmingDelete = deletingId === evt.id
 
             return (
               <div
                 key={evt.id}
-                className="flex rounded-xl overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm"
+                className={`flex rounded-xl overflow-hidden bg-white dark:bg-gray-800 border shadow-sm ${
+                  isHelper
+                    ? 'border-emerald-300 dark:border-emerald-700'
+                    : 'border-gray-200 dark:border-gray-700'
+                }`}
               >
                 {/* 우선순위 바 */}
                 <div className={`w-[4px] shrink-0 ${priorityBar}`} />

@@ -3,8 +3,10 @@ import { BarChart3, Calendar, TrendingUp } from 'lucide-react'
 import { getEvents } from '../services/schedule'
 import ContactForm from './ContactForm'
 import GiscusComments from './GiscusComments'
+import { useLanguage } from '../hooks/useLanguage'
 
 export default function WeeklyReport({ userId }) {
+  const { t } = useLanguage()
   const [weekEvents, setWeekEvents] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -39,12 +41,12 @@ export default function WeeklyReport({ userId }) {
   }, {})
 
   const categoryLabels = {
-    meeting: '회의',
-    personal: '개인',
-    work: '업무',
-    health: '건강',
-    other: '기타',
-    general: '일반',
+    meeting: t('catMeeting'),
+    personal: t('catPersonal'),
+    work: t('catWork'),
+    health: t('catHealth'),
+    other: t('catOther'),
+    general: t('catGeneral'),
   }
 
   return (
@@ -53,17 +55,17 @@ export default function WeeklyReport({ userId }) {
       <div>
         <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-3">
           <BarChart3 size={20} className="text-blue-600 dark:text-blue-400" />
-          이번 주 요약
+          {t('weekSummary')}
         </h2>
 
         {loading ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500">로딩 중...</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500">{t('loading')}</p>
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Calendar size={16} className="text-blue-600 dark:text-blue-400" />
-                <span className="text-xs text-gray-500 dark:text-gray-400">총 일정</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">{t('totalEvents')}</span>
               </div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{weekEvents.length}</p>
             </div>
@@ -71,7 +73,7 @@ export default function WeeklyReport({ userId }) {
             <div className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-1">
                 <TrendingUp size={16} className="text-blue-600 dark:text-blue-400" />
-                <span className="text-xs text-gray-500 dark:text-gray-400">카테고리</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">{t('categories')}</span>
               </div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {Object.keys(categoryCount).length}
@@ -101,7 +103,7 @@ export default function WeeklyReport({ userId }) {
         )}
 
         {!loading && weekEvents.length === 0 && (
-          <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">이번 주 등록된 일정이 없습니다.</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">{t('noEventsThisWeek')}</p>
         )}
       </div>
 
@@ -116,7 +118,7 @@ export default function WeeklyReport({ userId }) {
 
       {/* 댓글 */}
       <div>
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">의견 남기기</h2>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">{t('leaveFeedback')}</h2>
         <GiscusComments />
       </div>
     </div>

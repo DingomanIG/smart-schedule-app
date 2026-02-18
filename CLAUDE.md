@@ -4,85 +4,56 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-AI-powered smart schedule management web app (스마트 스케줄). Users register schedules via natural language chat, which are parsed by OpenAI GPT-4o-mini and stored in Firebase Firestore. Korean-language UI.
+AI-powered smart schedule management web app (스마트 스케줄). Users register schedules via natural language Korean chat, parsed by OpenAI GPT-4o-mini and stored in Firebase Firestore. Korean-language UI throughout.
 
 ## Commands
 
 ```bash
-npm run dev      # Start Vite dev server (default port 5173)
+npm run dev      # Vite dev server on port 5173 (proxies /api/openai → OpenAI API)
 npm run build    # Production build to /dist
 npm run preview  # Preview production build
 ```
 
+No test runner or linter is configured.
+
 ## Architecture
 
-```
-src/
-├── components/    # React UI components (PascalCase.jsx)
-├── services/      # External service integrations (camelCase.js)
-│   ├── firebase.js    # Firebase init with isFirebaseConfigured guard
-│   └── schedule.js    # Firestore event CRUD
-├── hooks/         # Custom React hooks
-│   └── useAuth.js     # Auth state + demo mode fallback
-├── utils/         # Utility functions (planned: dateParser.js)
-├── App.jsx        # Root: auth gate → 3-tab layout (chat/calendar/report)
-└── main.jsx       # ReactDOM entry point
-```
+**Core data flow:** User types Korean natural language in ChatInterface → `openai.js:parseSchedule()` sends to GPT-4o-mini → response parsed as JSON → user confirms via card UI → `schedule.js` writes to Firestore → CalendarView refreshes via `refreshKey` prop increment.
 
-**Data flow:** ChatInterface → OpenAI parseSchedule → schedule.js → Firestore
+**OpenAI API routing:**
+- Dev: Vite proxy rewrites `/api/openai/v1/chat/completions` → `https://api.openai.com` (key sent from browser)
+- Prod: Vercel serverless function at `api/chat.js` proxies to OpenAI (key stays server-side)
 
-**Firestore collections:** `users` (profiles), `events` (schedules), `chat_messages` (chat history)
+**Chat action types:** The GPT prompt returns `action: "create" | "move" | "update" | "delete"` with `targetEventId` for existing event operations. ChatInterface renders color-coded confirmation cards (blue=create, orange=move, red=delete, purple=update) that require user approval before Firestore writes.
+
+**Calendar architecture:** CalendarView manages three sub-views (month/week/day) and holds `monthEvents` state. It fetches the full month's events once, then filters locally per selected date. Events support drag-and-drop moving in month view.
+
+**Date parsing dual layer:** GPT parses dates from the prompt, then `dateParser.js:parseDateFromText()` re-parses the original user text client-side to correct GPT date errors (for `create` action only). The frontend parser handles Korean relative dates (내일, 모레, 글피, X요일) and typos (모래→모레, X욜→X요일).
+
+**Auth flow:** `useAuth` hook checks `isFirebaseConfigured` (from `firebase.js`) — if Firebase env vars are missing, returns a demo user (`uid: 'demo'`). App renders AuthForm gate when no user.
+
+**Dark mode:** `useDarkMode` hook persists to `localStorage('theme')`, toggles `dark` class on `<html>`. Tailwind configured with `darkMode: 'class'`.
+
+**Routing:** React Router v7 with flat route structure. `MainApp` component at `/` is the authenticated app. Static pages (`/about`, `/privacy`, `/blog/*`, etc.) are standalone page components under `src/pages/`.
 
 ## Key Patterns
 
-- **Demo mode:** When `.env` is missing or Firebase unconfigured, `useAuth` returns a demo user (`uid: 'demo'`) so the app runs without Firebase.
-- **Environment variables:** All secrets use `VITE_` prefix (Vite convention). See `.env.example` for required keys.
-- **State management:** `useState` only — no Redux/Zustand. Keep it simple.
-- **Styling:** Tailwind CSS with minimal classes. Primary color: `blue-600`. No gradients, no complex animations.
-- **Error handling:** All async functions wrapped in try-catch. Firebase error codes mapped to Korean messages in AuthForm.
+- **State management:** `useState` only — no external state library. CalendarView refresh is triggered by incrementing a `calendarKey` number prop.
+- **Firestore timestamps:** All dates stored as `Timestamp` objects. Convert with `.toDate()` for display. Use `toLocalDateStr()` helper for consistent `YYYY-MM-DD` formatting (avoids UTC timezone bugs).
+- **Event schema:** `{ userId, title, startTime: Timestamp, endTime: Timestamp|null, category, location, attendees[], createdAt, createdVia: 'chat' }`
+- **Demo mode:** App fully functional without Firebase — `useAuth` returns demo user, but Firestore operations will fail silently.
+- **Styling:** Tailwind CSS with `dark:` variants everywhere. Primary color: `blue-600`. Use `lucide-react` for all icons.
 
-## Development Phases
+## Environment Variables
 
-Reference `docs/guides/DEVELOPMENT_GUIDE_v1.0.md` for detailed implementation instructions per phase. Current progress through Phase 2 (Firebase integration). Remaining: OpenAI parsing (3), Event CRUD wiring (4), Calendar view (5), External services (6), AdSense pages (7), Deployment (8).
-
-## Non-Deployable Folders
-
-아래 폴더는 개발/문서 전용이며 프로덕션 빌드(`npm run build`)에 포함되지 않는다.
-
-| 폴더 | 용도 |
-|------|------|
-| `docs/` | 내부 문서 루트 (아래 하위 폴더로 분류) |
-| `docs/planning/` | 프로젝트 기획, 계획, TODO |
-| `docs/guides/` | 개발 가이드, 워크플로우, 마스터 가이드 |
-| `docs/deployment/` | 배포, 수익화 체크리스트 |
-| `docs/ideas/` | 개선 아이디어, 기능 제안 |
-| `test-screenshots/` | 테스트 중 생성되는 스크린샷 저장 (Playwright 등) |
-
-```
-docs/
-├── planning/
-│   ├── PROJECT_PLAN_v1.0.md        # 프로젝트 기획서
-│   └── TODO_v1.0.md                # 개발 진행 체크리스트
-├── guides/
-│   ├── DEVELOPMENT_GUIDE_v1.0.md   # 단계별 개발 지침서
-│   ├── DEVELOPMENT_WORKFLOW_v1.0.md # 개발 워크플로우
-│   └── MASTER_GUIDE_v1.0.md        # 마스터 가이드 (4일 런칭)
-├── deployment/
-│   └── DEPLOYMENT_CHECKLIST_v1.0.md # 배포 & 수익화 체크리스트
-└── ideas/
-    └── IMPROVEMENT_IDEAS_v1.0.md    # 개선 아이디어 50선
-```
-
-- Vite는 `src/` 와 `public/` 만 빌드 대상으로 처리
-- 위 폴더에는 코드/컴포넌트를 넣지 말 것
-- 새 내부 문서는 용도에 맞는 `docs/` 하위 폴더에 작성
-- 문서 파일명에 버전 표기 필수 (예: `_v1.0.md`, `_v1.1.md`)
-- 테스트 스크린샷은 반드시 `test-screenshots/` 에 저장 (프로젝트 루트에 직접 저장 금지)
+All prefixed with `VITE_`. Required: `VITE_OPENAI_API_KEY`, `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`. Optional: `VITE_WEB3FORMS_KEY`, `VITE_GISCUS_*`, `VITE_ADSENSE_CLIENT_ID`. See `.env.example`.
 
 ## Conventions
 
-- Components: PascalCase filenames (`ChatInterface.jsx`)
-- Services/utils: camelCase filenames (`firebase.js`, `dateParser.js`)
-- API keys: Always via `import.meta.env.VITE_*` — never hardcode
-- Icons: Use `lucide-react` exclusively
-- Keep styling minimal — functionality over design (MVP-first approach)
+- Components: PascalCase (`ChatInterface.jsx`), services/utils: camelCase (`schedule.js`)
+- All user-facing text in Korean
+- New docs go in `docs/` subfolders with version suffix (`_v1.0.md`)
+- `docs/`, `test-screenshots/` are dev-only — never put deployable code there
+
+# currentDate
+Today's date is 2026-02-18.

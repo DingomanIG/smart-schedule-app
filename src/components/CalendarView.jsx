@@ -5,11 +5,18 @@ import { Clock, MapPin, Trash2, GripVertical } from 'lucide-react'
 import { getEvents, deleteEvent, moveEvent } from '../services/schedule'
 import DayView from './DayView'
 import WeekView from './WeekView'
+import { useLanguage } from '../hooks/useLanguage'
 
-const VIEW_MODES = [
+const VIEW_MODES_KO = [
   { key: 'day', label: '일간' },
   { key: 'week', label: '주간' },
   { key: 'month', label: '월간' },
+]
+
+const VIEW_MODES_EN = [
+  { key: 'day', label: 'Day' },
+  { key: 'week', label: 'Week' },
+  { key: 'month', label: 'Month' },
 ]
 
 const toLocalDateStr = (date) => {
@@ -20,6 +27,8 @@ const toLocalDateStr = (date) => {
 }
 
 export default function CalendarView({ userId, refreshKey }) {
+  const { lang, t } = useLanguage()
+  const VIEW_MODES = lang === 'en' ? VIEW_MODES_EN : VIEW_MODES_KO
   const [viewMode, setViewMode] = useState('month')
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [events, setEvents] = useState([])
@@ -145,7 +154,7 @@ export default function CalendarView({ userId, refreshKey }) {
   const formatTime = (timestamp) => {
     if (!timestamp?.toDate) return ''
     const d = timestamp.toDate()
-    return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+    return d.toLocaleTimeString(lang === 'en' ? 'en-US' : 'ko-KR', { hour: '2-digit', minute: '2-digit' })
   }
 
   return (
@@ -156,11 +165,10 @@ export default function CalendarView({ userId, refreshKey }) {
           <button
             key={key}
             onClick={() => setViewMode(key)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-              viewMode === key
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-            }`}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center min-w-[64px] ${viewMode === key
+              ? 'bg-blue-500 text-white'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
           >
             {label}
           </button>
@@ -176,7 +184,8 @@ export default function CalendarView({ userId, refreshKey }) {
               value={selectedDate}
               onActiveStartDateChange={handleActiveStartDateChange}
               tileContent={tileContent}
-              locale="ko-KR"
+              formatDay={(locale, date) => date.getDate()}
+              locale={lang === 'en' ? 'en-US' : 'ko-KR'}
               calendarType="gregory"
             />
           </div>
@@ -184,7 +193,7 @@ export default function CalendarView({ userId, refreshKey }) {
           {/* 선택된 날짜 일정 목록 */}
           <div>
             <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {selectedDate.toLocaleDateString('ko-KR', {
+              {selectedDate.toLocaleDateString(lang === 'en' ? 'en-US' : 'ko-KR', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
@@ -192,9 +201,9 @@ export default function CalendarView({ userId, refreshKey }) {
             </h3>
 
             {loading ? (
-              <p className="text-sm text-gray-400 dark:text-gray-500">로딩 중...</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500">{t('loading')}</p>
             ) : events.length === 0 ? (
-              <p className="text-sm text-gray-400 dark:text-gray-500">일정이 없습니다.</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500">{t('noEvents')}</p>
             ) : (
               <div className="space-y-2">
                 {events.map((evt) => (
@@ -208,27 +217,26 @@ export default function CalendarView({ userId, refreshKey }) {
                       setDraggingEvent(evt)
                     }}
                     onDragEnd={() => setDraggingEvent(null)}
-                    className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 flex items-start justify-between cursor-grab active:cursor-grabbing transition-opacity ${
-                      draggingEvent?.id === evt.id ? 'opacity-40' : ''
-                    }`}
+                    className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 flex items-start justify-between cursor-grab active:cursor-grabbing transition-opacity ${draggingEvent?.id === evt.id ? 'opacity-40' : ''
+                      }`}
                   >
                     <div className="flex items-start gap-2">
                       <GripVertical size={14} className="text-gray-300 dark:text-gray-600 mt-0.5 shrink-0" />
                       <div className="space-y-1">
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">{evt.title}</p>
-                      <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                        <Clock size={12} />
-                        <span>{formatTime(evt.startTime)}</span>
-                        {evt.endTime && (
-                          <span>~ {formatTime(evt.endTime)}</span>
-                        )}
-                      </div>
-                      {evt.location && (
                         <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                          <MapPin size={12} />
-                          <span>{evt.location}</span>
+                          <Clock size={12} />
+                          <span>{formatTime(evt.startTime)}</span>
+                          {evt.endTime && (
+                            <span>~ {formatTime(evt.endTime)}</span>
+                          )}
                         </div>
-                      )}
+                        {evt.location && (
+                          <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                            <MapPin size={12} />
+                            <span>{evt.location}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <button

@@ -3,7 +3,9 @@ import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import { BarChart3, LogOut, X, Moon, Sun, BookOpen } from 'lucide-react'
 import { useAuth } from './hooks/useAuth'
 import { useDarkMode } from './hooks/useDarkMode'
+import { useLanguage } from './hooks/useLanguage'
 import SEO from './components/SEO'
+import LanguageToggle from './components/LanguageToggle'
 import AuthForm from './components/AuthForm'
 import ChatInterface from './components/ChatInterface'
 import CalendarView from './components/CalendarView'
@@ -33,6 +35,7 @@ import ComparisonPage from './pages/ComparisonPage'
 function MainApp() {
   const { user, loading, login, register, logout } = useAuth()
   const { dark, toggle } = useDarkMode()
+  const { t } = useLanguage()
   const [showReport, setShowReport] = useState(false)
   const [calendarKey, setCalendarKey] = useState(0)
 
@@ -43,7 +46,7 @@ function MainApp() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <p className="text-gray-500 dark:text-gray-400">로딩 중...</p>
+        <p className="text-gray-500 dark:text-gray-400">{t('loading')}</p>
       </div>
     )
   }
@@ -58,36 +61,37 @@ function MainApp() {
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shrink-0">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-blue-600 dark:text-blue-400">스마트 스케줄</h1>
+          <h1 className="text-xl font-bold text-blue-600 dark:text-blue-400 min-w-[130px]">{t('appTitle')}</h1>
           <div className="flex items-center gap-3">
+            <LanguageToggle />
             <button
               onClick={toggle}
-              className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1 text-sm transition-colors"
-              title={dark ? '라이트 모드' : '다크 모드'}
+              className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-center gap-1 text-sm transition-colors min-w-[72px]"
+              title={dark ? t('lightMode') : t('darkMode')}
             >
               {dark ? <Sun size={16} /> : <Moon size={16} />}
-              다크모드
+              {t('darkMode')}
             </button>
             <Link
               to="/blog"
-              className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1 text-sm"
+              className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-center gap-1 text-sm min-w-[60px]"
             >
               <BookOpen size={16} />
-              블로그
+              {t('blog')}
             </Link>
             <button
               onClick={() => setShowReport(true)}
-              className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1 text-sm"
+              className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-center gap-1 text-sm min-w-[60px]"
             >
               <BarChart3 size={16} />
-              리포트
+              {t('report')}
             </button>
             <button
               onClick={logout}
-              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 flex items-center gap-1 text-sm"
+              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 flex items-center justify-center gap-1 text-sm min-w-[72px]"
             >
               <LogOut size={16} />
-              로그아웃
+              {t('logout')}
             </button>
           </div>
         </div>
@@ -113,21 +117,21 @@ function MainApp() {
       {/* Footer */}
       <footer className="max-w-3xl mx-auto w-full px-4 py-2 shrink-0">
         <nav className="flex items-center justify-center gap-2 text-xs text-gray-400 dark:text-gray-500 flex-wrap">
-          <Link to="/about" className="hover:text-gray-600 dark:hover:text-gray-300">서비스 소개</Link>
+          <Link to="/about" className="hover:text-gray-600 dark:hover:text-gray-300">{t('about')}</Link>
           <span>|</span>
-          <Link to="/blog" className="hover:text-gray-600 dark:hover:text-gray-300">블로그</Link>
+          <Link to="/blog" className="hover:text-gray-600 dark:hover:text-gray-300">{t('blog')}</Link>
           <span>|</span>
-          <Link to="/faq" className="hover:text-gray-600 dark:hover:text-gray-300">FAQ</Link>
+          <Link to="/faq" className="hover:text-gray-600 dark:hover:text-gray-300">{t('faq')}</Link>
           <span>|</span>
-          <Link to="/guide" className="hover:text-gray-600 dark:hover:text-gray-300">사용 가이드</Link>
+          <Link to="/guide" className="hover:text-gray-600 dark:hover:text-gray-300">{t('guide')}</Link>
           <span>|</span>
-          <Link to="/pricing" className="hover:text-gray-600 dark:hover:text-gray-300">요금제</Link>
+          <Link to="/pricing" className="hover:text-gray-600 dark:hover:text-gray-300">{t('pricing')}</Link>
           <span>|</span>
-          <Link to="/privacy" className="hover:text-gray-600 dark:hover:text-gray-300">개인정보처리방침</Link>
+          <Link to="/privacy" className="hover:text-gray-600 dark:hover:text-gray-300">{t('privacy')}</Link>
           <span>|</span>
-          <Link to="/terms" className="hover:text-gray-600 dark:hover:text-gray-300">이용약관</Link>
+          <Link to="/terms" className="hover:text-gray-600 dark:hover:text-gray-300">{t('terms')}</Link>
           <span>|</span>
-          <Link to="/contact" className="hover:text-gray-600 dark:hover:text-gray-300">문의하기</Link>
+          <Link to="/contact" className="hover:text-gray-600 dark:hover:text-gray-300">{t('contact')}</Link>
         </nav>
       </footer>
 
@@ -136,7 +140,7 @@ function MainApp() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-lg max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 shrink-0">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">주간 리포트</h2>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t('weeklyReport')}</h2>
               <button
                 onClick={() => setShowReport(false)}
                 className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1"

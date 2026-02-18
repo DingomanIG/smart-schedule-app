@@ -2,14 +2,15 @@ import { useState, useRef, useEffect } from 'react'
 import { Send, Calendar, Clock, MapPin, Check, X, Loader2, ArrowRight, Trash2 } from 'lucide-react'
 import { parseSchedule } from '../services/openai'
 import { createEvent, getEvents, moveEvent, updateEvent, deleteEvent } from '../services/schedule'
-
-const initialMessage = {
-  role: 'assistant',
-  content: '안녕하세요! 일정을 말씀해주세요.\n예: "내일 오후 2시 회의" / "회의를 금요일로 옮겨줘"',
-}
+import { useLanguage } from '../hooks/useLanguage'
 
 export default function ChatInterface({ userId, onEventCreated }) {
-  const [messages, setMessages] = useState([initialMessage])
+  const { t } = useLanguage()
+
+  const [messages, setMessages] = useState([{
+    role: 'assistant',
+    content: t('chatGreeting'),
+  }])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [lastEventContext, setLastEventContext] = useState(null)
@@ -47,7 +48,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
       if (!parsed) {
         setMessages((prev) => [
           ...prev,
-          { role: 'assistant', content: '일정을 인식하지 못했습니다. 다시 말씀해주세요.' },
+          { role: 'assistant', content: t('chatParseFail') },
         ])
         return
       }
@@ -57,7 +58,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
       if (action === 'create') {
         const aiMsg = {
           role: 'assistant',
-          content: '일정을 확인해주세요:',
+          content: t('chatConfirmSchedule'),
           parsed,
           action: 'create',
         }
@@ -74,7 +75,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
       if (!targetEvent) {
         setMessages((prev) => [
           ...prev,
-          { role: 'assistant', content: '어떤 일정을 변경할지 알려주세요. 예: "내일 회의 취소해줘"' },
+          { role: 'assistant', content: t('chatWhichEvent') },
         ])
         return
       }
@@ -92,7 +93,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
           ...prev,
           {
             role: 'assistant',
-            content: '일정 이동을 확인해주세요:',
+            content: t('chatConfirmMove'),
             action: 'move',
             parsed,
             targetEvent,
@@ -104,7 +105,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
           ...prev,
           {
             role: 'assistant',
-            content: '일정 삭제를 확인해주세요:',
+            content: t('chatConfirmDelete'),
             action: 'delete',
             parsed,
             targetEvent,
@@ -116,7 +117,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
           ...prev,
           {
             role: 'assistant',
-            content: '일정 수정을 확인해주세요:',
+            content: t('chatConfirmUpdate'),
             action: 'update',
             parsed,
             targetEvent,
@@ -127,7 +128,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
     } catch (err) {
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: '오류가 발생했습니다. 다시 시도해주세요.' },
+        { role: 'assistant', content: t('chatError') },
       ])
     } finally {
       setLoading(false)
@@ -160,7 +161,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
         })
         setMessages((prev) => [
           ...prev,
-          { role: 'assistant', content: '일정이 저장되었습니다!' },
+          { role: 'assistant', content: t('chatSaved') },
         ])
       } else if (action === 'move') {
         const newHour = msg.parsed.time
@@ -176,7 +177,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
         })
         setMessages((prev) => [
           ...prev,
-          { role: 'assistant', content: '일정이 이동되었습니다!' },
+          { role: 'assistant', content: t('chatMoved') },
         ])
       } else if (action === 'delete') {
         await deleteEvent(msg.targetEvent.id)
@@ -184,7 +185,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
         setLastEventContext(null)
         setMessages((prev) => [
           ...prev,
-          { role: 'assistant', content: '일정이 삭제되었습니다!' },
+          { role: 'assistant', content: t('chatDeleted') },
         ])
       } else if (action === 'update') {
         const updates = msg.parsed.updates || {}
@@ -192,7 +193,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
         markConfirmed()
         setMessages((prev) => [
           ...prev,
-          { role: 'assistant', content: '일정이 수정되었습니다!' },
+          { role: 'assistant', content: t('chatUpdated') },
         ])
       }
 
@@ -200,7 +201,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
     } catch (err) {
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: '처리 중 오류가 발생했습니다.' },
+        { role: 'assistant', content: t('chatProcessError') },
       ])
     }
   }
@@ -213,7 +214,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
     )
     setMessages((prev) => [
       ...prev,
-      { role: 'assistant', content: '취소되었습니다. 다시 말씀해주세요.' },
+      { role: 'assistant', content: t('chatCancelled') },
     ])
   }
 
@@ -234,11 +235,10 @@ export default function ChatInterface({ userId, onEventCreated }) {
             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[75%] px-4 py-2.5 text-sm ${
-                msg.role === 'user'
-                  ? 'bg-blue-600 text-white rounded-[14px_2px_14px_14px]'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-[2px_14px_14px_14px]'
-              }`}
+              className={`max-w-[75%] px-4 py-2.5 text-sm ${msg.role === 'user'
+                ? 'bg-blue-600 text-white rounded-[14px_2px_14px_14px]'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-[2px_14px_14px_14px]'
+                }`}
             >
               {msg.content}
 
@@ -252,7 +252,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
                   </div>
                   <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 text-xs">
                     <Clock size={12} />
-                    <span>{msg.parsed.time} ({msg.parsed.duration}분)</span>
+                    <span>{msg.parsed.time} ({msg.parsed.duration}{t('minuteUnit')})</span>
                   </div>
                   {msg.parsed.location && (
                     <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 text-xs">
@@ -263,15 +263,15 @@ export default function ChatInterface({ userId, onEventCreated }) {
                   <div className="flex gap-2 mt-2">
                     <button
                       onClick={() => handleConfirm(i)}
-                      className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded-md text-xs font-medium hover:bg-blue-700"
+                      className="flex items-center justify-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded-md text-xs font-medium hover:bg-blue-700 min-w-[64px]"
                     >
-                      <Check size={12} /> 저장
+                      <Check size={12} /> {t('save')}
                     </button>
                     <button
                       onClick={() => handleCancel(i)}
-                      className="flex items-center gap-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-md text-xs font-medium hover:bg-gray-300 dark:hover:bg-gray-500"
+                      className="flex items-center justify-center gap-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-md text-xs font-medium hover:bg-gray-300 dark:hover:bg-gray-500 min-w-[64px]"
                     >
-                      <X size={12} /> 취소
+                      <X size={12} /> {t('cancel')}
                     </button>
                   </div>
                 </div>
@@ -281,28 +281,28 @@ export default function ChatInterface({ userId, onEventCreated }) {
               {msg.action === 'move' && !msg.confirmed && !msg.cancelled && (
                 <div className="mt-2 bg-white dark:bg-gray-800 border border-orange-300 dark:border-orange-600 rounded-xl p-3 space-y-1.5">
                   <p className="font-semibold text-gray-900 dark:text-white flex items-center gap-1">
-                    <ArrowRight size={14} className="text-orange-500" /> 일정 이동
+                    <ArrowRight size={14} className="text-orange-500" /> {t('moveSchedule')}
                   </p>
                   <p className="text-sm text-gray-800 dark:text-gray-200">"{msg.targetInfo.title}"</p>
                   <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
                     <span>{msg.targetInfo.date} {msg.targetInfo.time}</span>
                     <ArrowRight size={10} />
                     <span className="text-orange-600 dark:text-orange-400 font-medium">
-                      {msg.parsed.date}{msg.parsed.time ? ` ${msg.parsed.time}` : ' (시간 유지)'}
+                      {msg.parsed.date}{msg.parsed.time ? ` ${msg.parsed.time}` : ` ${t('keepTime')}`}
                     </span>
                   </div>
                   <div className="flex gap-2 mt-2">
                     <button
                       onClick={() => handleConfirm(i)}
-                      className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-md text-xs font-medium hover:bg-orange-600"
+                      className="flex items-center justify-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-md text-xs font-medium hover:bg-orange-600 min-w-[64px]"
                     >
-                      <Check size={12} /> 확인
+                      <Check size={12} /> {t('confirm')}
                     </button>
                     <button
                       onClick={() => handleCancel(i)}
-                      className="flex items-center gap-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-md text-xs font-medium hover:bg-gray-300 dark:hover:bg-gray-500"
+                      className="flex items-center justify-center gap-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-md text-xs font-medium hover:bg-gray-300 dark:hover:bg-gray-500 min-w-[64px]"
                     >
-                      <X size={12} /> 취소
+                      <X size={12} /> {t('cancel')}
                     </button>
                   </div>
                 </div>
@@ -312,7 +312,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
               {msg.action === 'delete' && !msg.confirmed && !msg.cancelled && (
                 <div className="mt-2 bg-white dark:bg-gray-800 border border-red-300 dark:border-red-600 rounded-xl p-3 space-y-1.5">
                   <p className="font-semibold text-gray-900 dark:text-white flex items-center gap-1">
-                    <Trash2 size={14} className="text-red-500" /> 일정 삭제
+                    <Trash2 size={14} className="text-red-500" /> {t('deleteSchedule')}
                   </p>
                   <p className="text-sm text-gray-800 dark:text-gray-200">"{msg.targetInfo.title}"</p>
                   <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
@@ -322,15 +322,15 @@ export default function ChatInterface({ userId, onEventCreated }) {
                   <div className="flex gap-2 mt-2">
                     <button
                       onClick={() => handleConfirm(i)}
-                      className="flex items-center gap-1 bg-red-500 text-white px-3 py-1.5 rounded-md text-xs font-medium hover:bg-red-600"
+                      className="flex items-center justify-center gap-1 bg-red-500 text-white px-3 py-1.5 rounded-md text-xs font-medium hover:bg-red-600 min-w-[64px]"
                     >
-                      <Trash2 size={12} /> 삭제
+                      <Trash2 size={12} /> {t('delete')}
                     </button>
                     <button
                       onClick={() => handleCancel(i)}
-                      className="flex items-center gap-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-md text-xs font-medium hover:bg-gray-300 dark:hover:bg-gray-500"
+                      className="flex items-center justify-center gap-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-md text-xs font-medium hover:bg-gray-300 dark:hover:bg-gray-500 min-w-[64px]"
                     >
-                      <X size={12} /> 취소
+                      <X size={12} /> {t('cancel')}
                     </button>
                   </div>
                 </div>
@@ -339,7 +339,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
               {/* 일정 수정 카드 — update */}
               {msg.action === 'update' && !msg.confirmed && !msg.cancelled && (
                 <div className="mt-2 bg-white dark:bg-gray-800 border border-purple-300 dark:border-purple-600 rounded-xl p-3 space-y-1.5">
-                  <p className="font-semibold text-gray-900 dark:text-white">일정 수정</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{t('updateSchedule')}</p>
                   <p className="text-sm text-gray-800 dark:text-gray-200">"{msg.targetInfo.title}"</p>
                   {msg.parsed.updates && Object.entries(msg.parsed.updates).map(([key, val]) => (
                     <div key={key} className="text-xs text-gray-600 dark:text-gray-400">
@@ -349,25 +349,25 @@ export default function ChatInterface({ userId, onEventCreated }) {
                   <div className="flex gap-2 mt-2">
                     <button
                       onClick={() => handleConfirm(i)}
-                      className="flex items-center gap-1 bg-purple-500 text-white px-3 py-1.5 rounded-md text-xs font-medium hover:bg-purple-600"
+                      className="flex items-center justify-center gap-1 bg-purple-500 text-white px-3 py-1.5 rounded-md text-xs font-medium hover:bg-purple-600 min-w-[64px]"
                     >
-                      <Check size={12} /> 수정
+                      <Check size={12} /> {t('edit')}
                     </button>
                     <button
                       onClick={() => handleCancel(i)}
-                      className="flex items-center gap-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-md text-xs font-medium hover:bg-gray-300 dark:hover:bg-gray-500"
+                      className="flex items-center justify-center gap-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-md text-xs font-medium hover:bg-gray-300 dark:hover:bg-gray-500 min-w-[64px]"
                     >
-                      <X size={12} /> 취소
+                      <X size={12} /> {t('cancel')}
                     </button>
                   </div>
                 </div>
               )}
 
               {msg.confirmed && (
-                <p className="mt-1 text-xs text-green-600 dark:text-green-400">저장 완료</p>
+                <p className="mt-1 text-xs text-green-600 dark:text-green-400">{t('savedComplete')}</p>
               )}
               {msg.cancelled && (
-                <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">취소됨</p>
+                <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">{t('cancelled')}</p>
               )}
             </div>
           </div>
@@ -376,7 +376,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
         {loading && (
           <div className="flex justify-start">
             <div className="bg-gray-100 dark:bg-gray-700 px-4 py-2.5 rounded-[2px_14px_14px_14px] text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
-              <Loader2 size={14} className="animate-spin" /> 분석 중...
+              <Loader2 size={14} className="animate-spin" /> {t('analyzing')}
             </div>
           </div>
         )}
@@ -392,7 +392,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="일정을 입력하세요..."
+            placeholder={t('chatInputPlaceholder')}
             disabled={loading}
             className="flex-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400 disabled:opacity-50 placeholder:text-gray-400 dark:placeholder:text-gray-500"
           />

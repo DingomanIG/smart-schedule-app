@@ -3,6 +3,7 @@ import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
 import { Clock, MapPin, Trash2, GripVertical, CheckCircle2, Circle } from 'lucide-react'
 import { getEvents, deleteEvent, moveEvent, toggleEventCompleted } from '../services/schedule'
+import { getMonthHolidayMap } from '../data/koreanHolidays'
 import DayView from './DayView'
 import WeekView from './WeekView'
 import { useLanguage } from '../hooks/useLanguage'
@@ -26,7 +27,7 @@ const toLocalDateStr = (date) => {
   return `${y}-${m}-${d}`
 }
 
-export default function CalendarView({ userId, refreshKey }) {
+export default function CalendarView({ userId, refreshKey, now: nowProp, onCurrentEventChange }) {
   const { lang, t } = useLanguage()
   const VIEW_MODES = lang === 'en' ? VIEW_MODES_EN : VIEW_MODES_KO
   const [viewMode, setViewMode] = useState('month')
@@ -35,12 +36,17 @@ export default function CalendarView({ userId, refreshKey }) {
   const [monthEvents, setMonthEvents] = useState([])
   const [loading, setLoading] = useState(false)
   const [draggingEvent, setDraggingEvent] = useState(null)
-  const [now, setNow] = useState(new Date())
+  const [holidayMap, setHolidayMap] = useState(() =>
+    getMonthHolidayMap(new Date().getFullYear(), new Date().getMonth() + 1)
+  )
+  const [localNow, setLocalNow] = useState(new Date())
   const nowTimerRef = useRef(null)
+  const now = nowProp || localNow
 
-  // 현재 시간 매분 업데이트
+  // 현재 시간 매분 업데이트 (fallback when no prop)
   useEffect(() => {
-    const updateNow = () => setNow(new Date())
+    if (nowProp) return
+    const updateNow = () => setLocalNow(new Date())
     const msUntilNextMinute = (60 - new Date().getSeconds()) * 1000
     const timeout = setTimeout(() => {
       updateNow()
@@ -50,7 +56,7 @@ export default function CalendarView({ userId, refreshKey }) {
       clearTimeout(timeout)
       if (nowTimerRef.current) clearInterval(nowTimerRef.current)
     }
-  }, [])
+  }, [nowProp])
 
   // 현재 진행 중인 일정 찾기
   const currentEvent = monthEvents.find((evt) => {
@@ -59,6 +65,11 @@ export default function CalendarView({ userId, refreshKey }) {
     const end = evt.endTime?.toDate?.() || new Date(start.getTime() + 3600000)
     return start <= now && now < end
   })
+
+  // 현재 일정을 부모에게 전달
+  useEffect(() => {
+    onCurrentEventChange?.(currentEvent || null)
+  }, [currentEvent?.id])
 
   // 일정 이동 핸들러
   const handleMoveEvent = async (eventId, newDateStr, newHour = null) => {
@@ -107,6 +118,7 @@ export default function CalendarView({ userId, refreshKey }) {
 
   const handleActiveStartDateChange = ({ activeStartDate }) => {
     fetchMonthEvents(activeStartDate)
+    setHolidayMap(getMonthHolidayMap(activeStartDate.getFullYear(), activeStartDate.getMonth() + 1))
   }
 
   const handleToggleCompleted = async (eventId, currentCompleted) => {
@@ -143,10 +155,19 @@ export default function CalendarView({ userId, refreshKey }) {
     }
   }
 
-  // 일정 개수 배지 + 드롭존 표시
+  // 공휴일 날짜 빨간색 표시
+  const tileClassName = ({ date, view }) => {
+    if (view !== 'month') return null
+    const dateStr = toLocalDateStr(date)
+    if (holidayMap.has(dateStr)) return 'holiday-tile'
+    return null
+  }
+
+  // 일정 개수 배지 + 공휴일 표시 + 드롭존 표시
   const tileContent = ({ date, view }) => {
     if (view !== 'month') return null
     const dateStr = toLocalDateStr(date)
+    const holidayName = holidayMap.get(dateStr)
     const count = monthEvents.filter((evt) => {
       const evtDate = evt.startTime?.toDate?.()
         ? toLocalDateStr(evt.startTime.toDate())
@@ -156,6 +177,13 @@ export default function CalendarView({ userId, refreshKey }) {
     const label = count > 99 ? '99' : String(count)
     return (
       <>
+        {holidayName && (
+          <div className="absolute top-0.5 left-1/2 -translate-x-1/2 w-full px-0.5" title={holidayName}>
+            <span className="block text-[7px] leading-tight text-red-500 dark:text-red-400 truncate text-center font-medium">
+              {holidayName}
+            </span>
+          </div>
+        )}
         {count > 0 && (
           <div className="absolute bottom-1 left-1/2 -translate-x-1/2" title={`${count}개 일정`}>
             <span className="min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
@@ -194,42 +222,20 @@ export default function CalendarView({ userId, refreshKey }) {
 
   return (
     <div className="p-4 flex flex-col gap-3 h-full">
-      {/* 뷰 전환 버튼 + 현재 시간/일정 */}
-      <div className="flex items-center justify-between gap-2 shrink-0">
-        <div className="flex gap-1">
-          {VIEW_MODES.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setViewMode(key)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center min-w-[64px] ${viewMode === key
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* 진행 중 일정 + 현재 시간 */}
-        <div className="flex items-center gap-2 text-xs">
-          {currentEvent && (
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg max-w-[200px]">
-              <span className="relative flex h-2 w-2 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
-              </span>
-              <span className="text-green-700 dark:text-green-300 truncate font-medium" title={currentEvent.title}>
-                {currentEvent.title}
-              </span>
-            </div>
-          )}
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <span className="font-semibold text-blue-700 dark:text-blue-300 tabular-nums">
-              {now.toLocaleTimeString(lang === 'en' ? 'en-US' : 'ko-KR', { hour: '2-digit', minute: '2-digit' })}
-            </span>
-          </div>
-        </div>
+      {/* 뷰 전환 버튼 */}
+      <div className="flex gap-1 shrink-0">
+        {VIEW_MODES.map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setViewMode(key)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center min-w-[64px] ${viewMode === key
+              ? 'bg-blue-500 text-white'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* 월간 뷰 */}
@@ -241,6 +247,7 @@ export default function CalendarView({ userId, refreshKey }) {
               value={selectedDate}
               onActiveStartDateChange={handleActiveStartDateChange}
               tileContent={tileContent}
+              tileClassName={tileClassName}
               formatDay={(locale, date) => date.getDate()}
               locale={lang === 'en' ? 'en-US' : 'ko-KR'}
               calendarType="gregory"
@@ -249,13 +256,42 @@ export default function CalendarView({ userId, refreshKey }) {
 
           {/* 선택된 날짜 일정 목록 */}
           <div>
-            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {selectedDate.toLocaleDateString(lang === 'en' ? 'en-US' : 'ko-KR', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
-            </h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {selectedDate.toLocaleDateString(lang === 'en' ? 'en-US' : 'ko-KR', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </h3>
+              {events.length > 0 && (() => {
+                const completedCount = events.filter(e => e.completed).length
+                const totalCount = events.length
+                const rate = Math.round((completedCount / totalCount) * 100)
+                return (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {completedCount}/{totalCount}{lang === 'ko' ? '개' : ''}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${
+                            rate === 100 ? 'bg-green-500' : rate >= 50 ? 'bg-blue-500' : 'bg-amber-500'
+                          }`}
+                          style={{ width: `${rate}%` }}
+                        />
+                      </div>
+                      <span className={`text-xs font-semibold ${
+                        rate === 100 ? 'text-green-500 dark:text-green-400' : rate >= 50 ? 'text-blue-500 dark:text-blue-400' : 'text-amber-500 dark:text-amber-400'
+                      }`}>
+                        {rate}%
+                      </span>
+                    </div>
+                  </div>
+                )
+              })()}
+            </div>
 
             {loading ? (
               <div className="space-y-2">
@@ -287,17 +323,17 @@ export default function CalendarView({ userId, refreshKey }) {
                       setDraggingEvent(evt)
                     }}
                     onDragEnd={() => setDraggingEvent(null)}
-                    className={`bg-white dark:bg-gray-800 border rounded-xl p-3 flex items-start justify-between cursor-grab active:cursor-grabbing transition-opacity ${
+                    className={`bg-white dark:bg-gray-800 border rounded-xl px-3 py-2 flex items-center justify-between cursor-grab active:cursor-grabbing transition-opacity ${
                       evt.createdVia === 'helper'
                         ? 'border-emerald-300 dark:border-emerald-700'
                         : 'border-gray-200 dark:border-gray-700'
                     } ${draggingEvent?.id === evt.id ? 'opacity-40' : ''}`}
                   >
-                    <div className="flex items-start gap-2">
-                      <GripVertical size={14} className="text-gray-300 dark:text-gray-600 mt-0.5 shrink-0" />
+                    <div className="flex items-center gap-2 min-w-0">
+                      <GripVertical size={14} className="text-gray-300 dark:text-gray-600 shrink-0" />
                       <button
                         onClick={() => handleToggleCompleted(evt.id, !!evt.completed)}
-                        className="mt-0.5 shrink-0 text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                        className="shrink-0 text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
                         title={evt.completed ? t('markIncomplete') : t('markComplete')}
                       >
                         {evt.completed
@@ -305,26 +341,21 @@ export default function CalendarView({ userId, refreshKey }) {
                           : <Circle size={16} />
                         }
                       </button>
-                      <div className="space-y-1">
-                        <p className={`text-sm font-semibold ${evt.completed ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>{evt.title}</p>
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                          <Clock size={12} />
-                          <span>{formatTime(evt.startTime)}</span>
-                          {evt.endTime && (
-                            <span>~ {formatTime(evt.endTime)}</span>
-                          )}
-                        </div>
-                        {evt.location && (
-                          <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                            <MapPin size={12} />
-                            <span>{evt.location}</span>
-                          </div>
-                        )}
+                      <p className={`text-sm font-semibold truncate ${evt.completed ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>{evt.title}</p>
+                      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 shrink-0">
+                        <Clock size={11} />
+                        <span>{formatTime(evt.startTime)}{evt.endTime ? ` ~ ${formatTime(evt.endTime)}` : ''}</span>
                       </div>
+                      {evt.location && (
+                        <div className="hidden sm:flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 shrink-0">
+                          <MapPin size={11} />
+                          <span className="truncate max-w-[100px]">{evt.location}</span>
+                        </div>
+                      )}
                     </div>
                     <button
                       onClick={() => handleDelete(evt.id)}
-                      className="text-gray-400 dark:text-gray-500 hover:text-red-500 p-1"
+                      className="text-gray-400 dark:text-gray-500 hover:text-red-500 p-1 shrink-0"
                     >
                       <Trash2 size={14} />
                     </button>

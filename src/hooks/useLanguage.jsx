@@ -20,8 +20,10 @@ export function LanguageProvider({ children }) {
     }, [])
 
     const t = useCallback(
-        (key) => {
-            return locales[lang]?.[key] || locales.ko[key] || key
+        (key, params) => {
+            const val = locales[lang]?.[key] || locales.ko[key] || key
+            if (typeof val === 'function') return val(params || {})
+            return val
         },
         [lang]
     )

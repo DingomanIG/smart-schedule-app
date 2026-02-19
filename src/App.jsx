@@ -1,16 +1,19 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import { BarChart3, LogOut, X, Moon, Sun, BookOpen, MessageSquare, CalendarCheck } from 'lucide-react'
+import { BarChart3, LogOut, X, Moon, Sun, BookOpen, MessageSquare, CalendarCheck, Bell, Flag } from 'lucide-react'
 import { useAuth } from './hooks/useAuth'
 import { useDarkMode } from './hooks/useDarkMode'
 import { useLanguage } from './hooks/useLanguage'
+import { useNotifications } from './hooks/useNotifications'
 import SEO from './components/SEO'
 import LanguageToggle from './components/LanguageToggle'
 import AuthForm from './components/AuthForm'
 import ChatInterface from './components/ChatInterface'
 import DailyScheduleView from './components/DailyScheduleView'
+import MajorEventsView from './components/MajorEventsView'
 import CalendarView from './components/CalendarView'
 import WeeklyReport from './components/WeeklyReport'
+import NotificationSettings from './components/NotificationSettings'
 
 import AboutPage from './pages/AboutPage'
 import PrivacyPage from './pages/PrivacyPage'
@@ -36,10 +39,14 @@ import ComparisonPage from './pages/ComparisonPage'
 function MainApp() {
   const { user, loading, login, register, loginWithGoogle, logout } = useAuth()
   const { dark, toggle } = useDarkMode()
-  const { t } = useLanguage()
+  const { lang, t } = useLanguage()
   const [showReport, setShowReport] = useState(false)
   const [calendarKey, setCalendarKey] = useState(0)
   const [chatMode, setChatMode] = useState('chat')
+  const [now, setNow] = useState(new Date())
+  const [currentEvent, setCurrentEvent] = useState(null)
+  const notifications = useNotifications(user?.uid, calendarKey, lang)
+  const nowTimerRef = useRef(null)
   const [splitPercent, setSplitPercent] = useState(() => {
     const saved = localStorage.getItem('splitPercent')
     return saved ? Number(saved) : 65
@@ -81,6 +88,20 @@ function MainApp() {
     }
   }, [splitPercent])
 
+  // 현재 시간 매분 업데이트
+  useEffect(() => {
+    const updateNow = () => setNow(new Date())
+    const msUntilNextMinute = (60 - new Date().getSeconds()) * 1000
+    const timeout = setTimeout(() => {
+      updateNow()
+      nowTimerRef.current = setInterval(updateNow, 60000)
+    }, msUntilNextMinute)
+    return () => {
+      clearTimeout(timeout)
+      if (nowTimerRef.current) clearInterval(nowTimerRef.current)
+    }
+  }, [])
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -99,9 +120,28 @@ function MainApp() {
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shrink-0">
         <div className="px-4 py-3 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-blue-600 dark:text-blue-400 min-w-[130px]">{t('appTitle')}</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold text-blue-600 dark:text-blue-400 min-w-[130px]">{t('appTitle')}</h1>
+            {currentEvent && (
+              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg max-w-[200px] text-xs">
+                <span className="relative flex h-2 w-2 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                </span>
+                <span className="text-green-700 dark:text-green-300 truncate font-medium" title={currentEvent.title}>
+                  {currentEvent.title}
+                </span>
+              </div>
+            )}
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg text-xs">
+              <span className="font-semibold text-blue-700 dark:text-blue-300 tabular-nums">
+                {now.toLocaleDateString(lang === 'en' ? 'en-US' : 'ko-KR', { month: 'short', day: 'numeric', weekday: 'short' })} {now.toLocaleTimeString(lang === 'en' ? 'en-US' : 'ko-KR', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+          </div>
           <div className="flex items-center gap-3">
             <LanguageToggle />
+            <NotificationSettings {...notifications} t={t} />
             <button
               onClick={toggle}
               className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-center gap-1 text-sm transition-colors min-w-[72px]"
@@ -144,7 +184,7 @@ function MainApp() {
           // lg 이상에서만 splitPercent 적용 (CSS media query 대신 inline style)
         >
           <div className="flex-1 overflow-y-auto">
-            <CalendarView userId={user.uid} refreshKey={calendarKey} />
+            <CalendarView userId={user.uid} refreshKey={calendarKey} now={now} onCurrentEventChange={setCurrentEvent} />
           </div>
         </section>
 
@@ -182,14 +222,27 @@ function MainApp() {
               <CalendarCheck size={13} />
               {t('dailyScheduleMode')}
             </button>
+            <button
+              onClick={() => setChatMode('major')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors min-w-[64px] justify-center ${
+                chatMode === 'major'
+                  ? 'bg-red-500 text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              <Flag size={13} />
+              {t('majorEventsMode')}
+            </button>
           </div>
 
           {/* Content Area */}
           <div className="flex-1 min-h-0">
             {chatMode === 'chat' ? (
               <ChatInterface userId={user.uid} onEventCreated={handleEventCreated} />
-            ) : (
+            ) : chatMode === 'schedule' ? (
               <DailyScheduleView userId={user.uid} onEventCreated={handleEventCreated} />
+            ) : (
+              <MajorEventsView userId={user.uid} onEventCreated={handleEventCreated} />
             )}
           </div>
         </section>

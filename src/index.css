@@ -114,7 +114,7 @@ code {
   border-radius: 0.5rem;
   font-size: 0.8125rem;
   color: #374151;
-  padding: 1.5em 0.25em;
+  padding: 3em 0.25em;
 }
 
 .calendar-wrapper .react-calendar__tile:hover {
@@ -218,6 +218,24 @@ code {
 
 .dark .calendar-wrapper .react-calendar__month-view__days__day--neighboringMonth {
   color: #4b5563;
+}
+
+/* 공휴일 날짜 빨간색 표시 */
+.calendar-wrapper .react-calendar__tile.holiday-tile {
+  color: #ef4444 !important;
+  font-weight: 700;
+}
+
+.calendar-wrapper .react-calendar__tile.holiday-tile:not(.react-calendar__tile--active) {
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.dark .calendar-wrapper .react-calendar__tile.holiday-tile {
+  color: #f87171 !important;
+}
+
+.dark .calendar-wrapper .react-calendar__tile.holiday-tile:not(.react-calendar__tile--active) {
+  background: rgba(239, 68, 68, 0.08);
 }
 
 /* 드래그 앤 드롭 - 드롭존 호버 피드백 */

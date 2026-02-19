@@ -81,7 +81,7 @@ export default function CalendarView({ userId, refreshKey }) {
     const end = new Date(activeDate.getFullYear(), activeDate.getMonth() + 1, 0, 23, 59, 59)
     try {
       const data = await getEvents(userId, start, end)
-      setMonthEvents(data)
+      setMonthEvents(data.filter((e) => !e.disabled))
     } catch (err) {
       console.error('일정 조회 오류:', err)
     }

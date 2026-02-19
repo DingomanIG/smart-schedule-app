@@ -127,7 +127,7 @@ const ko = {
     helperDayUnit: '일',
 
     // Daily Schedule Management
-    dailyScheduleMode: '일상 스케줄 관리',
+    dailyScheduleMode: '일상',
     chatMode: '채팅',
     completedCount: '완료',
     noHelperEvents: '등록된 일상 스케줄이 없습니다.',

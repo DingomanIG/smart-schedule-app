@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
-  Clock, Trash2, Pencil,
-  CheckCircle2, Circle, User, ClipboardList, ChevronDown, ChevronUp,
+  Trash2, Pencil, AlertTriangle,
+  User, ClipboardList, ChevronDown, ChevronUp,
 } from 'lucide-react'
-import { getEvents, deleteEvent, toggleEventCompleted, updateEvent } from '../services/schedule'
+import { getEvents, deleteEvent, updateEvent } from '../services/schedule'
 import { getHelperProfile } from '../services/helperProfile'
 import { useLanguage } from '../hooks/useLanguage'
 import { Timestamp } from 'firebase/firestore'
@@ -17,6 +17,16 @@ const CATEGORY_STYLES = {
   health:   'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-300',
   general:  'bg-gray-100 text-gray-500 dark:bg-gray-800/50 dark:text-gray-400',
 }
+
+const CATEGORY_TABS = [
+  { key: 'all',      label: 'all' },
+  { key: 'routine',  label: 'routine' },
+  { key: 'meal',     label: 'meal' },
+  { key: 'commute',  label: 'commute' },
+  { key: 'leisure',  label: 'leisure' },
+  { key: 'personal', label: 'personal' },
+  { key: 'health',   label: 'health' },
+]
 
 const formatTime = (timestamp) => {
   if (!timestamp?.toDate) return ''
@@ -40,15 +50,15 @@ export default function DailyScheduleView({ userId, onEventCreated }) {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [helperProfile, setHelperProfile] = useState(null)
-  const [deletingId, setDeletingId] = useState(null)
   const [showProfile, setShowProfile] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [categoryFilter, setCategoryFilter] = useState('all') // { type: 'single'|'group', eventId?, titleKey?, groupEvents?, count }
 
-  // Bulk edit state: which group (title key) is being edited, and which field
-  const [editingGroup, setEditingGroup] = useState(null) // title key
-  const [editField, setEditField] = useState(null) // 'title' | 'time'
-  const [editValue, setEditValue] = useState('') // string for title
-  const [editStart, setEditStart] = useState('') // HH:MM for time
-  const [editEnd, setEditEnd] = useState('') // HH:MM for time
+  const [editingGroup, setEditingGroup] = useState(null)
+  const [editField, setEditField] = useState(null)
+  const [editValue, setEditValue] = useState('')
+  const [editStart, setEditStart] = useState('')
+  const [editEnd, setEditEnd] = useState('')
   const editRef = useRef(null)
 
   const fetchEvents = useCallback(async () => {
@@ -82,48 +92,49 @@ export default function DailyScheduleView({ userId, onEventCreated }) {
     if (editingGroup && editRef.current) editRef.current.focus()
   }, [editingGroup, editField])
 
-  // Toggle single event
-  const handleToggle = async (eventId, currentCompleted) => {
-    try {
-      await toggleEventCompleted(eventId, currentCompleted)
-      setEvents((prev) => prev.map((e) => (e.id === eventId ? { ...e, completed: !currentCompleted } : e)))
-      onEventCreated?.()
-    } catch { /* ignore */ }
+  const requestDelete = (eventId) => {
+    setDeleteConfirm({ type: 'single', eventId, count: 1 })
   }
 
-  // Toggle ALL events in a group
-  const handleToggleAll = async (groupEvents) => {
-    const allActive = groupEvents.every((e) => !e.completed)
+  const requestDeleteGroup = (titleKey, groupEvents) => {
+    setDeleteConfirm({ type: 'group', titleKey, groupEvents, count: groupEvents.length })
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return
     try {
-      await Promise.all(groupEvents.map((e) => toggleEventCompleted(e.id, !allActive)))
+      if (deleteConfirm.type === 'single') {
+        await deleteEvent(deleteConfirm.eventId)
+        setEvents((prev) => prev.filter((e) => e.id !== deleteConfirm.eventId))
+      } else {
+        await Promise.all(deleteConfirm.groupEvents.map((e) => deleteEvent(e.id)))
+        const ids = new Set(deleteConfirm.groupEvents.map((e) => e.id))
+        setEvents((prev) => prev.filter((e) => !ids.has(e.id)))
+      }
+      onEventCreated?.()
+    } catch { /* ignore */ }
+    setDeleteConfirm(null)
+  }
+
+  // Toggle disabled (hide from calendar) for all events in a group
+  const handleToggleGroup = async (groupEvents) => {
+    const allDisabled = groupEvents.every((e) => e.disabled)
+    const newDisabled = !allDisabled
+    try {
+      await Promise.all(groupEvents.map((e) => updateEvent(e.id, { disabled: newDisabled })))
       const ids = new Set(groupEvents.map((e) => e.id))
-      setEvents((prev) => prev.map((e) => (ids.has(e.id) ? { ...e, completed: allActive } : e)))
+      setEvents((prev) => prev.map((e) => (ids.has(e.id) ? { ...e, disabled: newDisabled } : e)))
       onEventCreated?.()
     } catch { /* ignore */ }
   }
 
-  // Delete single event
-  const handleDelete = async (eventId) => {
-    if (deletingId === eventId) {
-      try {
-        await deleteEvent(eventId)
-        setEvents((prev) => prev.filter((e) => e.id !== eventId))
-        setDeletingId(null)
-        onEventCreated?.()
-      } catch { /* ignore */ }
-    } else {
-      setDeletingId(eventId)
-    }
-  }
-
-  // Start bulk edit
   const startBulkEdit = (titleKey, field, groupEvents) => {
     setEditingGroup(titleKey)
     setEditField(field)
-    setDeletingId(null)
     if (field === 'title') {
       setEditValue(groupEvents[0].title)
     } else if (field === 'time') {
+      // Use the most common time as default
       setEditStart(toHHMM(groupEvents[0].startTime))
       setEditEnd(groupEvents[0].endTime ? toHHMM(groupEvents[0].endTime) : '')
     }
@@ -137,7 +148,6 @@ export default function DailyScheduleView({ userId, onEventCreated }) {
     setEditEnd('')
   }
 
-  // Save bulk edit - applies to ALL events in the group
   const saveBulkEdit = async (groupEvents) => {
     if (!editingGroup || !editField) return
     try {
@@ -158,11 +168,9 @@ export default function DailyScheduleView({ userId, onEventCreated }) {
           if (eh !== null) {
             const newEnd = new Date(oldStart)
             newEnd.setHours(eh, em, 0, 0)
-            // 종료가 시작보다 이전이면 다음날로
             if (newEnd <= newStart) newEnd.setDate(newEnd.getDate() + 1)
             upd.endTime = Timestamp.fromDate(newEnd)
           } else if (e.endTime?.toDate) {
-            // 종료시간 입력 없으면 기존 duration 유지
             const duration = e.endTime.toDate().getTime() - oldStart.getTime()
             upd.endTime = Timestamp.fromDate(new Date(newStart.getTime() + duration))
           }
@@ -182,7 +190,6 @@ export default function DailyScheduleView({ userId, onEventCreated }) {
     if (e.key === 'Escape') cancelEdit()
   }
 
-  const completedCount = events.filter((e) => e.completed).length
   const dateLocale = lang === 'ko' ? 'ko-KR' : 'en-US'
   const prefs = helperProfile?.preferences
 
@@ -194,19 +201,47 @@ export default function DailyScheduleView({ userId, onEventCreated }) {
     grouped[key].events.push(evt)
   })
 
+  // Filter groups by category
+  const filteredGroups = categoryFilter === 'all'
+    ? Object.entries(grouped)
+    : Object.entries(grouped).filter(([, g]) => g.category === categoryFilter)
+
+  // Count per category for badge
+  const categoryCounts = {}
+  Object.values(grouped).forEach((g) => {
+    categoryCounts[g.category] = (categoryCounts[g.category] || 0) + g.events.length
+  })
+
   return (
     <div className="h-full flex flex-col bg-white dark:bg-gray-900">
-      {/* Summary Bar */}
+      {/* Category Filter Tabs */}
       {!loading && events.length > 0 && (
-        <div className="flex items-center gap-3 px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 shrink-0">
-          <span className="flex items-center gap-1">
-            <ClipboardList size={12} />
-            {events.length}{t('eventsCount')}
-          </span>
-          <span className="flex items-center gap-1">
-            <CheckCircle2 size={12} className="text-green-500" />
-            {completedCount}/{events.length} {t('completedCount')}
-          </span>
+        <div className="flex items-center gap-1 px-2 py-1.5 border-b border-gray-200 dark:border-gray-700 shrink-0 overflow-x-auto">
+          {CATEGORY_TABS
+            .filter(({ key }) => key === 'all' || categoryCounts[key])
+            .map(({ key, label }) => {
+              const style = key !== 'all' && CATEGORY_STYLES[key] ? CATEGORY_STYLES[key] : ''
+              return (
+                <button
+                  key={key}
+                  onClick={() => setCategoryFilter(key)}
+                  className={`flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-full transition-colors whitespace-nowrap shrink-0 ${
+                    categoryFilter === key
+                      ? 'bg-blue-500 text-white'
+                      : style || 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                  } hover:opacity-80`}
+                >
+                  {label}
+                  {key !== 'all' && categoryCounts[key] && (
+                    <span className={`text-[10px] ${
+                      categoryFilter === key ? 'text-blue-200' : 'opacity-60'
+                    }`}>
+                      {categoryCounts[key]}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
         </div>
       )}
 
@@ -223,36 +258,40 @@ export default function DailyScheduleView({ userId, onEventCreated }) {
             <p className="text-xs text-gray-400 dark:text-gray-500">{t('noHelperEventsHint')}</p>
           </div>
         ) : (
-          Object.entries(grouped).map(([titleKey, group]) => {
+          filteredGroups.map(([titleKey, group]) => {
             const catStyle = CATEGORY_STYLES[group.category] || CATEGORY_STYLES.general
             const isEditing = editingGroup === titleKey
-            const allCompleted = group.events.every((e) => e.completed)
-            const someCompleted = group.events.some((e) => e.completed)
+
+            // Find the most common time (majority time)
+            const timeCounts = {}
+            group.events.forEach((e) => {
+              const key = `${toHHMM(e.startTime)}~${toHHMM(e.endTime)}`
+              timeCounts[key] = (timeCounts[key] || 0) + 1
+            })
+            const mainTimeKey = Object.entries(timeCounts).sort((a, b) => b[1] - a[1])[0][0]
+
+
+            // Events that differ from the main time
+            const outliers = group.events.filter((e) => {
+              const key = `${toHHMM(e.startTime)}~${toHHMM(e.endTime)}`
+              return key !== mainTimeKey
+            })
+
+            const mainStartFmt = formatTime(group.events.find((e) => `${toHHMM(e.startTime)}~${toHHMM(e.endTime)}` === mainTimeKey).startTime)
+            const mainEndFmt = formatTime(group.events.find((e) => `${toHHMM(e.startTime)}~${toHHMM(e.endTime)}` === mainTimeKey).endTime)
+
+            const isGroupDisabled = group.events.every((e) => e.disabled)
 
             return (
-              <div key={titleKey} className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-                {/* Group Header */}
-                <div className={`px-3 py-2 ${allCompleted ? 'bg-gray-50 dark:bg-gray-800/50 opacity-60' : 'bg-gray-50 dark:bg-gray-800'}`}>
-                  {/* Row 1: toggle + category + title + count */}
+              <div key={titleKey} className={`rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden ${isGroupDisabled ? 'opacity-50' : ''}`}>
+                {/* Header: title + time + active/inactive + count + delete */}
+                <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800">
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleToggleAll(group.events)}
-                      className="shrink-0"
-                      title={allCompleted ? t('markIncomplete') : t('markComplete')}
-                    >
-                      {allCompleted ? (
-                        <CheckCircle2 size={16} className="text-green-500" />
-                      ) : someCompleted ? (
-                        <CheckCircle2 size={16} className="text-green-300 dark:text-green-700" />
-                      ) : (
-                        <Circle size={16} className="text-gray-300 dark:text-gray-600" />
-                      )}
-                    </button>
-
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${catStyle}`}>
                       {group.category}
                     </span>
 
+                    {/* Title - editable */}
                     {isEditing && editField === 'title' ? (
                       <input
                         ref={editRef}
@@ -266,7 +305,7 @@ export default function DailyScheduleView({ userId, onEventCreated }) {
                     ) : (
                       <button
                         onClick={() => startBulkEdit(titleKey, 'title', group.events)}
-                        className={`flex-1 min-w-0 text-left text-sm font-medium group flex items-center gap-1 ${allCompleted ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-100'}`}
+                        className="min-w-0 text-left text-sm font-medium group flex items-center gap-1 text-gray-800 dark:text-gray-100"
                         title={t('editTitle')}
                       >
                         <span className="truncate">{titleKey}</span>
@@ -274,112 +313,116 @@ export default function DailyScheduleView({ userId, onEventCreated }) {
                       </button>
                     )}
 
+                    {/* Time display - click to bulk edit */}
+                    {isEditing && editField === 'time' ? (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <input
+                          ref={editRef}
+                          type="time"
+                          value={editStart}
+                          onChange={(e) => setEditStart(e.target.value)}
+                          onKeyDown={(e) => handleEditKeyDown(e, group.events)}
+                          className="text-xs font-mono px-1 py-0.5 rounded border border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 outline-none"
+                        />
+                        <span className="text-gray-400 text-xs">~</span>
+                        <input
+                          type="time"
+                          value={editEnd}
+                          onChange={(e) => setEditEnd(e.target.value)}
+                          onKeyDown={(e) => handleEditKeyDown(e, group.events)}
+                          className="text-xs font-mono px-1 py-0.5 rounded border border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 outline-none"
+                        />
+                        <button
+                          onClick={() => saveBulkEdit(group.events)}
+                          className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500 text-white hover:bg-blue-600"
+                        >
+                          {t('confirm')}
+                        </button>
+                        <button
+                          onClick={cancelEdit}
+                          className="text-[10px] px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                        >
+                          {t('cancel')}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => startBulkEdit(titleKey, 'time', group.events)}
+                        className="text-xs text-gray-400 dark:text-gray-500 font-mono shrink-0 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                        title={t('bulkEditTime')}
+                      >
+                        {mainStartFmt}{mainEndFmt ? `~${mainEndFmt}` : ''}
+                      </button>
+                    )}
+
+                    {/* Active/Inactive toggle switch */}
+                    {(() => {
+                      const isActive = !group.events.every((e) => e.disabled)
+                      return (
+                        <button
+                          onClick={() => handleToggleGroup(group.events)}
+                          className={`relative shrink-0 w-9 h-5 rounded-full transition-colors duration-200 ${
+                            isActive
+                              ? 'bg-blue-500 dark:bg-blue-600'
+                              : 'bg-gray-300 dark:bg-gray-600'
+                          }`}
+                          title={isActive ? (t('deactivateHint') || '비활성화') : (t('activateHint') || '활성화')}
+                        >
+                          <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${
+                            isActive ? 'translate-x-4' : 'translate-x-0'
+                          }`} />
+                        </button>
+                      )
+                    })()}
+
                     <span className="text-[10px] text-gray-400 dark:text-gray-500 shrink-0">
                       {group.events.length}{t('eventsCount')}
                     </span>
+
+                    {/* Group delete */}
+                    <button
+                      onClick={() => requestDeleteGroup(titleKey, group.events)}
+                      className="shrink-0 p-0.5 rounded transition-colors text-gray-300 dark:text-gray-600 hover:text-red-400"
+                      title={t('delete')}
+                    >
+                      <Trash2 size={12} />
+                    </button>
                   </div>
-
-                  {/* Row 2: bulk time edit */}
-                  {isEditing && editField === 'time' ? (
-                    <div className="flex items-center gap-1.5 mt-1.5 ml-6 flex-wrap">
-                      <input
-                        ref={editRef}
-                        type="time"
-                        value={editStart}
-                        onChange={(e) => setEditStart(e.target.value)}
-                        onKeyDown={(e) => handleEditKeyDown(e, group.events)}
-                        className="text-xs font-mono px-1.5 py-1 rounded border border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 outline-none"
-                      />
-                      <span className="text-gray-400 text-xs">~</span>
-                      <input
-                        type="time"
-                        value={editEnd}
-                        onChange={(e) => setEditEnd(e.target.value)}
-                        onKeyDown={(e) => handleEditKeyDown(e, group.events)}
-                        className="text-xs font-mono px-1.5 py-1 rounded border border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 outline-none"
-                      />
-                      <button
-                        onClick={() => saveBulkEdit(group.events)}
-                        className="text-[10px] px-2 py-1 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors"
-                      >
-                        {t('confirm')}
-                      </button>
-                      <button
-                        onClick={cancelEdit}
-                        className="text-[10px] px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                      >
-                        {t('cancel')}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center mt-1 ml-6">
-                      <button
-                        onClick={() => startBulkEdit(titleKey, 'time', group.events)}
-                        className="text-[10px] px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-500 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors flex items-center gap-1"
-                        title={t('bulkEditTime')}
-                      >
-                        <Clock size={10} />
-                        {t('bulkEditTime')}
-                      </button>
-                    </div>
-                  )}
                 </div>
 
-                {/* Individual event rows */}
-                <div className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                  {group.events.map((evt) => {
-                    const isDeleting = deletingId === evt.id
-                    const dateStr = shortDate(evt.startTime, dateLocale)
-                    const timeStr = formatTime(evt.startTime)
-                    const endStr = formatTime(evt.endTime)
+                {/* Only show outlier events (different time from main) */}
+                {outliers.length > 0 && (
+                  <div className="divide-y divide-gray-100 dark:divide-gray-700/50">
+                    {outliers.map((evt) => {
+                      const dateStr = shortDate(evt.startTime, dateLocale)
+                      const timeStr = formatTime(evt.startTime)
+                      const endStr = formatTime(evt.endTime)
 
-                    return (
-                      <div
-                        key={evt.id}
-                        className={`flex items-center gap-2 px-3 py-1.5 text-xs ${
-                          evt.completed ? 'opacity-50' : ''
-                        }`}
-                      >
-                        {/* Per-event toggle */}
-                        <button
-                          onClick={() => handleToggle(evt.id, evt.completed)}
-                          className="shrink-0"
+                      return (
+                        <div
+                          key={evt.id}
+                          className="flex items-center gap-2 px-3 py-1 text-xs bg-amber-50/50 dark:bg-amber-900/10"
                         >
-                          {evt.completed ? (
-                            <CheckCircle2 size={14} className="text-green-500" />
-                          ) : (
-                            <Circle size={14} className="text-gray-300 dark:text-gray-600" />
-                          )}
-                        </button>
-
-                        {/* Date */}
-                        <span className="text-gray-400 dark:text-gray-500 w-[72px] shrink-0">
-                          {dateStr}
-                        </span>
-
-                        {/* Time */}
-                        <span className="text-gray-500 dark:text-gray-400 font-mono shrink-0">
-                          {timeStr}{endStr ? `~${endStr}` : ''}
-                        </span>
-
-                        <span className="flex-1" />
-
-                        {/* Delete */}
-                        <button
-                          onClick={() => handleDelete(evt.id)}
-                          className={`shrink-0 p-0.5 rounded transition-colors ${
-                            isDeleting
-                              ? 'bg-red-100 dark:bg-red-900/30 text-red-500'
-                              : 'text-gray-300 dark:text-gray-600 hover:text-red-400'
-                          }`}
-                          title={isDeleting ? t('deleteConfirmHint') : t('delete')}
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    )
-                  })}
-                </div>
+                          <span className="text-amber-500 dark:text-amber-400 text-[10px] shrink-0">*</span>
+                          <span className="text-gray-400 dark:text-gray-500 shrink-0">
+                            {dateStr}
+                          </span>
+                          <span className="text-amber-600 dark:text-amber-400 font-mono shrink-0">
+                            {timeStr}{endStr ? `~${endStr}` : ''}
+                          </span>
+                          <span className="flex-1" />
+                          <button
+                            onClick={() => requestDelete(evt.id)}
+                            className="shrink-0 p-0.5 rounded transition-colors text-gray-300 dark:text-gray-600 hover:text-red-400"
+                            title={t('delete')}
+                          >
+                            <Trash2 size={10} />
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )
           })
@@ -413,6 +456,57 @@ export default function DailyScheduleView({ userId, onEventCreated }) {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setDeleteConfirm(null)}>
+          <div
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-72 overflow-hidden border border-gray-200 dark:border-gray-700"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-4 py-3 bg-red-50 dark:bg-red-900/20 border-b border-red-100 dark:border-red-900/30">
+              <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                <AlertTriangle size={16} />
+                <span className="font-semibold text-sm">
+                  {deleteConfirm.type === 'group' ? (t('deleteGroupTitle') || '전체 삭제') : (t('deleteTitle') || '일정 삭제')}
+                </span>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="px-4 py-4">
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                {deleteConfirm.type === 'group'
+                  ? `${deleteConfirm.count}개의 일정이 삭제됩니다.`
+                  : '이 일정이 삭제됩니다.'}
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {deleteConfirm.type === 'group'
+                  ? `정말 "${deleteConfirm.titleKey}" 일정을 삭제하시겠습니까?`
+                  : '정말 삭제하시겠습니까?'}
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2 px-4 pb-4">
+              <button
+                onClick={confirmDelete}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors"
+              >
+                <Trash2 size={14} />
+                {t('deleteBtn') || '삭제'}
+              </button>
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="flex items-center gap-1 px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 text-sm font-medium transition-colors"
+              >
+                {t('cancel') || '취소'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

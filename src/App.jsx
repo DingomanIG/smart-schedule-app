@@ -159,13 +159,13 @@ function MainApp() {
         {/* 채팅/일상스케줄: 모바일 하단 40% / PC 우측 (나머지) */}
         <section className="h-[40%] lg:h-full lg:min-w-[280px] flex-1 flex flex-col min-h-0">
           {/* Mode Switcher Tabs */}
-          <div className="flex items-center border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0 px-2 pt-1">
+          <div className="flex items-center gap-1 bg-white dark:bg-gray-800 shrink-0 px-2 py-1.5 border-b border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setChatMode('chat')}
-              className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-t-lg transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors min-w-[64px] justify-center ${
                 chatMode === 'chat'
-                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-b-0 border-gray-200 dark:border-gray-700'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
               <MessageSquare size={13} />
@@ -173,10 +173,10 @@ function MainApp() {
             </button>
             <button
               onClick={() => setChatMode('schedule')}
-              className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-t-lg transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors min-w-[64px] justify-center ${
                 chatMode === 'schedule'
-                  ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-b-0 border-gray-200 dark:border-gray-700'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
               <CalendarCheck size={13} />

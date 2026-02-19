@@ -1,13 +1,16 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Calendar, Clock, MapPin, Check, X, Loader2, ArrowRight, Trash2 } from 'lucide-react'
-import { parseSchedule, generateDailySchedule } from '../services/openai'
+import { Send, Calendar, Clock, MapPin, Check, X, Loader2, ArrowRight, Trash2, Cake, Heart, PartyPopper } from 'lucide-react'
+import { parseSchedule, generateDailySchedule, generatePetCareSchedule } from '../services/openai'
 import { createEvent, getEvents, moveEvent, updateEvent, deleteEvent, deleteAllEvents, addBatchEvents } from '../services/schedule'
 import { saveHelperProfile, getHelperProfile } from '../services/helperProfile'
 import {
   parseTimeInput, parseMealsInput, parseCommuteInput,
-  parseRoutinesInput, isDailyHelperTrigger, isHelperCancel
+  parseRoutinesInput, isDailyHelperTrigger, isPetCareHelperTrigger, isHelperCancel,
+  parsePetType, parsePetName, parsePetAge, parsePetSize, parsePetIndoor,
+  isProfileEditTrigger,
 } from '../utils/helperParser'
 import BatchConfirmCard from './BatchConfirmCard'
+import PetCareCard from './PetCareCard'
 import HelperSelector from './HelperSelector'
 import { useLanguage } from '../hooks/useLanguage'
 
@@ -18,6 +21,32 @@ const ONBOARDING_STEPS = [
   { key: 'commute',  askKey: 'helperAskCommute',   parser: parseCommuteInput },
   { key: 'routines', askKey: 'helperAskRoutines',  parser: parseRoutinesInput },
 ]
+
+// 반려동물 1마리 정보 수집 스텝
+const PET_SINGLE_STEPS = [
+  { key: 'petType',   askKey: 'petCareAskType',    parser: parsePetType },
+  { key: 'petName',   askKey: 'petCareAskName',    parser: parsePetName },
+  { key: 'petAge',    askKey: 'petCareAskAge',     parser: parsePetAge },
+  { key: 'petSize',   askKey: 'petCareAskSize',    parser: parsePetSize, skipIf: (a) => a._currentPet?.petType !== 'dog' },
+  { key: 'petIndoor', askKey: 'petCareAskIndoor',  parser: parsePetIndoor },
+]
+
+// 마지막 공통 질문 스텝
+const PET_FINAL_STEPS = [
+  { key: 'wakeUp',       askKey: 'petCareAskWakeUp',       parser: parseTimeInput },
+  { key: 'simultaneous', askKey: 'petCareAskSimultaneous',  parser: parsePetIndoor, skipIf: (a) => (a.pets || []).length < 2 },
+]
+
+// 레거시 호환용
+const PET_ONBOARDING_STEPS = [
+  ...PET_SINGLE_STEPS,
+  { key: 'wakeUp', askKey: 'petCareAskWakeUp', parser: parseTimeInput },
+]
+
+function getOnboardingSteps(type) {
+  if (type === 'petcare') return PET_ONBOARDING_STEPS
+  return ONBOARDING_STEPS
+}
 
 export default function ChatInterface({ userId, onEventCreated }) {
   const { t } = useLanguage()
@@ -52,29 +81,46 @@ export default function ChatInterface({ userId, onEventCreated }) {
 
   // === Helper: 온보딩 시작 ===
   const startHelperOnboarding = (type) => {
+    const steps = getOnboardingSteps(type)
     setHelperState({ type, step: 0, answers: {} })
-    const firstStep = ONBOARDING_STEPS[0]
+    const startMsg = type === 'petcare' ? t('petCareStart') : t('helperStart')
     setMessages((prev) => [
       ...prev,
-      { role: 'assistant', content: `${t('helperStart')}\n\n${t(firstStep.askKey)}\n${t('helperCancelHint')}` },
+      { role: 'assistant', content: `${startMsg}\n\n${t(steps[0].askKey)}\n${t('helperCancelHint')}` },
     ])
   }
 
-  // === Helper: 시작 (프로필 확인 → 온보딩 or 일수 선택) ===
+  // === Helper: 시작 (프로필 확인 → 온보딩 or 일수 선택/바로 생성) ===
   const handleStartHelper = async (type) => {
-    if (type !== 'daily') return
+    if (type !== 'daily' && type !== 'petcare') return
 
     setLoading(true)
     try {
-      const existingProfile = await getHelperProfile(userId, 'H01')
-      if (existingProfile) {
-        setPendingProfile(existingProfile)
-        setMessages((prev) => [
-          ...prev,
-          { role: 'assistant', content: t('helperAskDays'), action: 'select_days' },
-        ])
-      } else {
-        startHelperOnboarding(type)
+      if (type === 'daily') {
+        const existingProfile = await getHelperProfile(userId, 'H01')
+        if (existingProfile) {
+          setPendingProfile(existingProfile)
+          setMessages((prev) => [
+            ...prev,
+            { role: 'assistant', content: t('helperAskDays'), action: 'select_days' },
+          ])
+        } else {
+          startHelperOnboarding(type)
+        }
+      } else if (type === 'petcare') {
+        const existingProfile = await getHelperProfile(userId, 'H11')
+        if (existingProfile) {
+          // 기존 프로필 → 일수 선택
+          const pets = existingProfile.pets || [{ petType: existingProfile.petType, petName: existingProfile.petName, petAge: existingProfile.petAge, petSize: existingProfile.petSize, petIndoor: existingProfile.petIndoor }]
+          const petSummary = pets.map(p => `${p.petName}(${p.petType === 'dog' ? '🐶' : '🐱'})`).join(', ')
+          setPendingProfile({ _type: 'petcare', ...existingProfile })
+          setMessages((prev) => [
+            ...prev,
+            { role: 'assistant', content: `${t('petCareProfileFound')} ${petSummary}\n${t('helperAskDays')}`, action: 'select_days' },
+          ])
+        } else {
+          startHelperOnboarding(type)
+        }
       }
     } catch {
       startHelperOnboarding(type)
@@ -87,6 +133,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
   const handleSelectDays = async (days) => {
     if (!pendingProfile) return
     const profile = pendingProfile
+    const isPetCare = profile._type === 'petcare'
     setPendingProfile(null)
     setMessages((prev) => [
       ...prev.map((m) => m.action === 'select_days' ? { ...m, answered: true } : m),
@@ -94,17 +141,22 @@ export default function ChatInterface({ userId, onEventCreated }) {
       { role: 'assistant', content: t('helperGenerating') },
     ])
     setLoading(true)
-    await generateAndShowBatch(profile, days)
+    if (isPetCare) {
+      const { _type, ...petInfo } = profile
+      await generateAndShowPetCareBatch(petInfo, days)
+    } else {
+      await generateAndShowBatch(profile, days)
+    }
   }
 
   const parseDaysInput = (text) => {
     const s = text.trim()
     const weekMatch = s.match(/(\d+)\s*주/)
-    if (weekMatch) return Math.min(parseInt(weekMatch[1]) * 7, 14)
+    if (weekMatch) return Math.min(parseInt(weekMatch[1]) * 7, 60)
     const dayMatch = s.match(/(\d+)/)
     if (dayMatch) {
       const n = parseInt(dayMatch[1])
-      if (n >= 1 && n <= 14) return n
+      if (n >= 1 && n <= 60) return n
     }
     return null
   }
@@ -116,55 +168,161 @@ export default function ChatInterface({ userId, onEventCreated }) {
       setHelperState(null)
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: t('helperCancelled') },
+        { role: 'assistant', content: helperState.type === 'petcare' ? t('petCareCancelled') : t('helperCancelled') },
       ])
       setLoading(false)
       return
     }
 
-    const { step, answers } = helperState
-    const currentStep = ONBOARDING_STEPS[step]
+    const { type, step, answers } = helperState
+
+    // === 펫 케어 다중 펫 온보딩 ===
+    if (type === 'petcare') {
+      const phase = answers._phase || 'pet_info'  // pet_info | ask_more | final
+      const petStep = answers._petStep || 0
+      const pets = answers.pets || []
+      const currentPet = answers._currentPet || {}
+
+      if (phase === 'pet_info') {
+        const currentStepDef = PET_SINGLE_STEPS[petStep]
+        // skipIf 체크 (크기는 강아지만)
+        if (currentStepDef.skipIf?.({ _currentPet: currentPet })) {
+          // 자동 스킵 → 다음 스텝으로
+          const nextPetStep = petStep + 1
+          if (nextPetStep < PET_SINGLE_STEPS.length) {
+            const nextDef = PET_SINGLE_STEPS[nextPetStep]
+            setHelperState({ ...helperState, answers: { ...answers, _petStep: nextPetStep } })
+            setMessages(prev => [...prev, { role: 'assistant', content: `${t(nextDef.askKey)}\n${t('helperCancelHint')}` }])
+          }
+          setLoading(false)
+          return
+        }
+
+        const parsed = currentStepDef.parser(text)
+        if (parsed === null) {
+          setMessages(prev => [...prev, { role: 'assistant', content: `${t('helperParseRetry')}\n\n${t(currentStepDef.askKey)}` }])
+          setLoading(false)
+          return
+        }
+
+        const updatedPet = { ...currentPet, [currentStepDef.key]: parsed }
+
+        // 다음 펫 스텝 찾기
+        let nextPetStep = petStep + 1
+        while (nextPetStep < PET_SINGLE_STEPS.length && PET_SINGLE_STEPS[nextPetStep].skipIf?.({ _currentPet: updatedPet })) {
+          nextPetStep++
+        }
+
+        if (nextPetStep < PET_SINGLE_STEPS.length) {
+          setHelperState({ ...helperState, answers: { ...answers, _currentPet: updatedPet, _petStep: nextPetStep } })
+          setMessages(prev => [...prev, { role: 'assistant', content: `${t(PET_SINGLE_STEPS[nextPetStep].askKey)}\n${t('helperCancelHint')}` }])
+          setLoading(false)
+        } else {
+          // 이 펫 완료 → "더 있나요?" 질문
+          const newPets = [...pets, updatedPet]
+          setHelperState({ ...helperState, answers: { ...answers, pets: newPets, _currentPet: {}, _petStep: 0, _phase: 'ask_more' } })
+          const petSummary = newPets.map(p => `${p.petName}(${p.petType === 'dog' ? '🐶' : '🐱'})`).join(', ')
+          setMessages(prev => [...prev, { role: 'assistant', content: `✅ ${updatedPet.petName} 등록 완료! (현재: ${petSummary})\n\n${t('petCareAskMorePets')}\n${t('helperCancelHint')}` }])
+          setLoading(false)
+        }
+        return
+      }
+
+      if (phase === 'ask_more') {
+        const yesNo = parsePetIndoor(text) // true=예, false=아니오
+        if (yesNo === null) {
+          setMessages(prev => [...prev, { role: 'assistant', content: `${t('helperParseRetry')}\n\n${t('petCareAskMorePets')}` }])
+          setLoading(false)
+          return
+        }
+        if (yesNo) {
+          // 추가 펫 → pet_info 처음으로
+          setHelperState({ ...helperState, answers: { ...answers, _phase: 'pet_info', _petStep: 0, _currentPet: {} } })
+          setMessages(prev => [...prev, { role: 'assistant', content: `${t('petCareAskType')}\n${t('helperCancelHint')}` }])
+          setLoading(false)
+        } else {
+          // 펫 추가 끝 → final 질문
+          const finalSteps = PET_FINAL_STEPS.filter(s => !s.skipIf?.(answers))
+          if (finalSteps.length > 0) {
+            setHelperState({ ...helperState, answers: { ...answers, _phase: 'final', _finalStep: 0 } })
+            setMessages(prev => [...prev, { role: 'assistant', content: `${t(finalSteps[0].askKey)}\n${t('helperCancelHint')}` }])
+            setLoading(false)
+          } else {
+            // final 질문 없으면 바로 완료
+            await finishPetOnboarding({ ...answers, _phase: undefined, _petStep: undefined, _currentPet: undefined, _finalStep: undefined })
+          }
+        }
+        return
+      }
+
+      if (phase === 'final') {
+        const finalSteps = PET_FINAL_STEPS.filter(s => !s.skipIf?.(answers))
+        const fIdx = answers._finalStep || 0
+        const currentFinal = finalSteps[fIdx]
+        const parsed = currentFinal.parser(text)
+        if (parsed === null) {
+          setMessages(prev => [...prev, { role: 'assistant', content: `${t('helperParseRetry')}\n\n${t(currentFinal.askKey)}` }])
+          setLoading(false)
+          return
+        }
+        const newAnswers = { ...answers, [currentFinal.key]: parsed }
+        const nextFIdx = fIdx + 1
+        if (nextFIdx < finalSteps.length) {
+          setHelperState({ ...helperState, answers: { ...newAnswers, _finalStep: nextFIdx } })
+          setMessages(prev => [...prev, { role: 'assistant', content: `${t(finalSteps[nextFIdx].askKey)}\n${t('helperCancelHint')}` }])
+          setLoading(false)
+        } else {
+          await finishPetOnboarding({ ...newAnswers, _phase: undefined, _petStep: undefined, _currentPet: undefined, _finalStep: undefined })
+        }
+        return
+      }
+    }
+
+    // === 일상 도우미 (기존 로직) ===
+    const steps = getOnboardingSteps(type)
+    const currentStep = steps[step]
     const parsed = currentStep.parser(text)
 
     if (parsed === null) {
-      // 파싱 실패 → 재질문
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: `${t('helperParseRetry')}\n\n${t(currentStep.askKey)}` },
-      ])
+      setMessages(prev => [...prev, { role: 'assistant', content: `${t('helperParseRetry')}\n\n${t(currentStep.askKey)}` }])
       setLoading(false)
       return
     }
 
     const newAnswers = { ...answers, [currentStep.key]: parsed }
-    const nextStep = step + 1
 
-    if (nextStep < ONBOARDING_STEPS.length) {
-      // 다음 질문
+    let nextStep = step + 1
+    while (nextStep < steps.length && steps[nextStep].skipIf?.(newAnswers)) {
+      nextStep++
+    }
+
+    if (nextStep < steps.length) {
       setHelperState({ ...helperState, step: nextStep, answers: newAnswers })
-      const nextStepInfo = ONBOARDING_STEPS[nextStep]
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: `${t(nextStepInfo.askKey)}\n${t('helperCancelHint')}` },
-      ])
+      setMessages(prev => [...prev, { role: 'assistant', content: `${t(steps[nextStep].askKey)}\n${t('helperCancelHint')}` }])
       setLoading(false)
     } else {
-      // 온보딩 완료 → 프로필 저장 + 일수 선택
+      // 일상 도우미 온보딩 완료: 프로필 저장 + 일수 선택
       setHelperState(null)
-
       try {
         await saveHelperProfile(userId, 'H01', newAnswers)
-      } catch {
-        // 프로필 저장 실패는 무시 (데모 모드)
-      }
-
+      } catch { /* 데모 모드 */ }
       setPendingProfile(newAnswers)
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: t('helperAskDays'), action: 'select_days' },
-      ])
+      setMessages(prev => [...prev, { role: 'assistant', content: t('helperAskDays'), action: 'select_days' }])
       setLoading(false)
     }
+  }
+
+  // === 펫 케어 온보딩 완료 처리 ===
+  const finishPetOnboarding = async (answers) => {
+    setHelperState(null)
+    // 내부 상태 키 제거 후 저장
+    const { _phase, _petStep, _currentPet, _finalStep, ...profileData } = answers
+    try {
+      await saveHelperProfile(userId, 'H11', profileData)
+    } catch { /* 데모 모드 */ }
+    setPendingProfile({ _type: 'petcare', ...profileData })
+    setMessages(prev => [...prev, { role: 'assistant', content: t('helperAskDays'), action: 'select_days' }])
+    setLoading(false)
   }
 
   // === Helper: GPT 스케줄 생성 + 배치 카드 표시 (멀티데이) ===
@@ -200,6 +358,90 @@ export default function ChatInterface({ userId, onEventCreated }) {
     }
   }
 
+  // === Pet Care: GPT 스케줄 생성 + 카드 표시 (멀티데이) ===
+  const generateAndShowPetCareBatch = async (petInfo, days = 1) => {
+    try {
+      const result = await generatePetCareSchedule(petInfo)
+      const today = new Date()
+      const petCareDays = []
+      for (let i = 0; i < days; i++) {
+        const d = new Date(today)
+        d.setDate(d.getDate() + i)
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+        petCareDays.push({ date: dateStr, events: result.events.map((e) => ({ ...e })) })
+      }
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: t('petCareScheduleGenerated'),
+          action: 'petcare_batch',
+          petCareEvents: petCareDays[0].events,
+          petCareDate: petCareDays[0].date,
+          petCareDays,
+          petInfo,
+          confirmed: false,
+          cancelled: false,
+        },
+      ])
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: t('helperGenerateError') },
+      ])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // === Pet Care: 배치 전체 등록 (멀티데이) ===
+  const handlePetCareConfirm = async (msgIndex) => {
+    const msg = messages[msgIndex]
+    if (!msg.petCareEvents || msg.confirmed) return
+
+    try {
+      if (msg.petCareDays && msg.petCareDays.length > 1) {
+        for (const day of msg.petCareDays) {
+          await addBatchEvents(userId, day.events, day.date)
+        }
+      } else {
+        await addBatchEvents(userId, msg.petCareEvents, msg.petCareDate)
+      }
+      setMessages((prev) =>
+        prev.map((m, i) =>
+          i === msgIndex ? { ...m, confirmed: true } : m
+        )
+      )
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: t('petCareBatchSaved') },
+      ])
+      onEventCreated?.()
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: t('chatProcessError') },
+      ])
+    }
+  }
+
+  // === Pet Care: 개별 항목 제거 ===
+  const handlePetCareRemoveItem = (msgIndex, eventIdx) => {
+    setMessages((prev) =>
+      prev.map((m, i) => {
+        if (i !== msgIndex || !m.petCareEvents) return m
+        const newEvents = m.petCareEvents.filter((_, ei) => ei !== eventIdx)
+        const newDays = m.petCareDays
+          ? m.petCareDays.map((day) => ({
+              ...day,
+              events: day.events.filter((_, ei) => ei !== eventIdx),
+            })).filter((day) => day.events.length > 0)
+          : undefined
+        return { ...m, petCareEvents: newEvents, petCareDays: newDays }
+      })
+    )
+  }
+
   // === Helper: 배치 전체 등록 (멀티데이) ===
   const handleBatchConfirm = async (msgIndex) => {
     const msg = messages[msgIndex]
@@ -229,15 +471,15 @@ export default function ChatInterface({ userId, onEventCreated }) {
     }
   }
 
-  // === Helper: 배치 개별 항목 제거 (멀티데이) ===
+  // === Helper: 배치 개별 항목 제거 (템플릿 기반 — 모든 날짜에서 동일 인덱스 제거) ===
   const handleBatchRemoveItem = (msgIndex, dayIdx, eventIdx) => {
     setMessages((prev) =>
       prev.map((m, i) => {
         if (i !== msgIndex || !m.batchDays) return m
-        const newDays = m.batchDays.map((day, di) => {
-          if (di !== dayIdx) return day
-          return { ...day, events: day.events.filter((_, ei) => ei !== eventIdx) }
-        }).filter((day) => day.events.length > 0)
+        const newDays = m.batchDays.map((day) => ({
+          ...day,
+          events: day.events.filter((_, ei) => ei !== eventIdx),
+        })).filter((day) => day.events.length > 0)
         return { ...m, batchDays: newDays }
       })
     )
@@ -265,6 +507,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
         const days = parseDaysInput(currentInput)
         if (days) {
           const profile = pendingProfile
+          const isPetCare = profile._type === 'petcare'
           setPendingProfile(null)
           setMessages((prev) => prev.map((m) =>
             m.action === 'select_days' ? { ...m, answered: true } : m
@@ -273,7 +516,12 @@ export default function ChatInterface({ userId, onEventCreated }) {
             ...prev,
             { role: 'assistant', content: t('helperGenerating') },
           ])
-          await generateAndShowBatch(profile, days)
+          if (isPetCare) {
+            const { _type, ...petInfo } = profile
+            await generateAndShowPetCareBatch(petInfo, days)
+          } else {
+            await generateAndShowBatch(profile, days)
+          }
         } else {
           setMessages((prev) => [
             ...prev,
@@ -314,7 +562,23 @@ export default function ChatInterface({ userId, onEventCreated }) {
         return
       }
 
+      // 2.5 프로필 수정 트리거 감지
+      const profileEdit = isProfileEditTrigger(currentInput)
+      if (profileEdit) {
+        const type = profileEdit === 'any' ? 'daily' : profileEdit
+        setMessages(prev => [
+          ...prev,
+          { role: 'assistant', content: type === 'petcare' ? '펫 케어 프로필을 다시 설정합니다.' : '일상 프로필을 다시 설정합니다.' },
+        ])
+        await handleStartHelper(type)
+        return
+      }
+
       // 3. 도우미 트리거 감지
+      if (isPetCareHelperTrigger(currentInput)) {
+        await handleStartHelper('petcare')
+        return
+      }
       if (isDailyHelperTrigger(currentInput)) {
         await handleStartHelper('daily')
         return
@@ -333,6 +597,19 @@ export default function ChatInterface({ userId, onEventCreated }) {
       }
 
       const { action, targetEventId } = parsed
+
+      if (action === 'add_major_event') {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: t('chatConfirmMajorEvent'),
+            parsed,
+            action: 'add_major_event',
+          },
+        ])
+        return
+      }
 
       if (action === 'create') {
         const aiMsg = {
@@ -497,6 +774,30 @@ export default function ChatInterface({ userId, onEventCreated }) {
           ...prev,
           { role: 'assistant', content: t('chatUpdated') },
         ])
+      } else if (action === 'add_major_event') {
+        const p = msg.parsed
+        const profile = await getHelperProfile(userId, 'H12') || { birthdays: [], anniversaries: [], events: [] }
+        const newItem = { id: Date.now().toString(), name: p.name, memo: p.memo || '' }
+
+        if (p.majorEventType === 'birthday') {
+          newItem.date = p.date // MM-DD
+          newItem.calendarType = p.calendarType || 'solar'
+          newItem.relation = p.relation || 'family'
+          profile.birthdays = [...(profile.birthdays || []), newItem]
+        } else if (p.majorEventType === 'anniversary') {
+          newItem.startDate = p.date // YYYY-MM-DD
+          profile.anniversaries = [...(profile.anniversaries || []), newItem]
+        } else {
+          newItem.startDate = p.date // YYYY-MM-DD
+          profile.events = [...(profile.events || []), newItem]
+        }
+
+        await saveHelperProfile(userId, 'H12', profile)
+        markConfirmed()
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: t('chatMajorEventSaved') },
+        ])
       }
 
       onEventCreated?.()
@@ -605,7 +906,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
               {/* 일수 선택 버튼 — select_days */}
               {msg.action === 'select_days' && !msg.answered && (
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {[1, 3, 5, 7].map((d) => (
+                  {[1, 7, 30, 60].map((d) => (
                     <button
                       key={d}
                       onClick={() => handleSelectDays(d)}
@@ -623,6 +924,20 @@ export default function ChatInterface({ userId, onEventCreated }) {
                   batchDays={msg.batchDays || []}
                   onConfirmAll={() => handleBatchConfirm(i)}
                   onRemoveItem={(dayIdx, eventIdx) => handleBatchRemoveItem(i, dayIdx, eventIdx)}
+                  onCancel={() => handleCancel(i)}
+                  confirmed={msg.confirmed}
+                  cancelled={msg.cancelled}
+                />
+              )}
+
+              {/* 펫 케어 카드 — petcare_batch */}
+              {msg.action === 'petcare_batch' && (
+                <PetCareCard
+                  petInfo={msg.petInfo}
+                  events={msg.petCareEvents || []}
+                  days={msg.petCareDays || []}
+                  onConfirmAll={() => handlePetCareConfirm(i)}
+                  onRemoveItem={(eventIdx) => handlePetCareRemoveItem(i, eventIdx)}
                   onCancel={() => handleCancel(i)}
                   confirmed={msg.confirmed}
                   cancelled={msg.cancelled}
@@ -714,6 +1029,55 @@ export default function ChatInterface({ userId, onEventCreated }) {
                   </div>
                 </div>
               )}
+
+              {/* 주요 행사 등록 카드 — add_major_event */}
+              {msg.action === 'add_major_event' && !msg.confirmed && !msg.cancelled && msg.parsed && (() => {
+                const p = msg.parsed
+                const type = p.majorEventType
+                const borderColor = type === 'birthday' ? 'border-pink-300 dark:border-pink-600' : type === 'anniversary' ? 'border-purple-300 dark:border-purple-600' : 'border-orange-300 dark:border-orange-600'
+                const IconComp = type === 'birthday' ? Cake : type === 'anniversary' ? Heart : PartyPopper
+                const iconColor = type === 'birthday' ? 'text-pink-500' : type === 'anniversary' ? 'text-purple-500' : 'text-orange-500'
+                const btnColor = type === 'birthday' ? 'bg-pink-500 hover:bg-pink-600' : type === 'anniversary' ? 'bg-purple-500 hover:bg-purple-600' : 'bg-orange-500 hover:bg-orange-600'
+                const typeLabel = type === 'birthday' ? t('majorTab_birthday') : type === 'anniversary' ? t('majorTab_anniversary') : t('majorTab_event')
+                return (
+                  <div className={`mt-2 bg-white dark:bg-gray-800 border ${borderColor} rounded-xl p-3 space-y-1.5`}>
+                    <p className="font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+                      <IconComp size={14} className={iconColor} />
+                      {typeLabel} {t('majorAddBtn')}
+                    </p>
+                    <p className="text-sm text-gray-800 dark:text-gray-200">{p.name}</p>
+                    <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 text-xs">
+                      <Calendar size={12} />
+                      <span>{p.date}</span>
+                      {type === 'birthday' && p.calendarType === 'lunar' && (
+                        <span className="text-pink-500 dark:text-pink-400">(음력)</span>
+                      )}
+                    </div>
+                    {type === 'birthday' && p.relation && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {t('chatMajorRelation')}: {p.relation === 'family' ? t('chatRelFamily') : p.relation === 'friend' ? t('chatRelFriend') : p.relation === 'colleague' ? t('chatRelColleague') : t('chatRelLover')}
+                      </div>
+                    )}
+                    {p.memo && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{p.memo}</div>
+                    )}
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={() => handleConfirm(i)}
+                        className={`flex items-center justify-center gap-1 ${btnColor} text-white px-3 py-1.5 rounded-md text-xs font-medium min-w-[64px]`}
+                      >
+                        <Check size={12} /> {t('majorAddBtn')}
+                      </button>
+                      <button
+                        onClick={() => handleCancel(i)}
+                        className="flex items-center justify-center gap-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-md text-xs font-medium hover:bg-gray-300 dark:hover:bg-gray-500 min-w-[64px]"
+                      >
+                        <X size={12} /> {t('cancel')}
+                      </button>
+                    </div>
+                  </div>
+                )
+              })()}
 
               {msg.confirmed && msg.action !== 'create_batch' && (
                 <p className="mt-1 text-xs text-green-600 dark:text-green-400">{t('savedComplete')}</p>

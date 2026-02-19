@@ -125,6 +125,7 @@ const en = {
     helperAskDays: 'How many days of schedule would you like?',
     helperAskDaysRetry: "Couldn't recognize the number of days. Please enter a number. (e.g., 1, 3, 7)",
     helperDayUnit: ' day(s)',
+    helperTemplateDayLabel: '▼ Daily template (removing items applies to all days)',
 
     // Daily Schedule Management
     dailyScheduleMode: 'Daily Schedule',
@@ -165,16 +166,21 @@ const en = {
 
     // Major Events Helper
     majorEventsMode: 'Events',
+    petCareMode: 'Pet',
     majorTab_holiday: 'Holidays',
     majorTab_birthday: 'Birthdays',
     majorTab_anniversary: 'Anniversary',
+    majorTab_event: 'Events',
     majorTab_vacation: 'Vacation',
     majorNoHolidays: 'No holiday data available.',
     majorPastHolidays: 'Past holidays',
     majorNoBirthdays: 'No birthdays registered.',
     majorNoAnniversaries: 'No anniversaries registered.',
+    majorNoEvents: 'No events registered.',
     majorAddBirthday: 'Add Birthday',
     majorAddAnniversary: 'Add Anniversary',
+    majorAddEvent: 'Add Event',
+    majorEventNamePlaceholder: 'Event name (e.g., Reunion)',
     majorNamePlaceholder: 'Name (e.g., Mom)',
     majorAnniversaryNamePlaceholder: 'Anniversary name (e.g., Dating)',
     majorMemoPlaceholder: 'Memo (optional)',
@@ -193,6 +199,33 @@ const en = {
     majorVacRatio: (p) => `${p.n}x`,
     majorDayUnit: ' days',
     helperMajorEvents: 'Major Events Helper',
+
+    // Chat → Major Events
+    chatConfirmMajorEvent: 'Please confirm the major event:',
+    chatMajorEventSaved: 'Registered to major events! Check the Events tab.',
+    chatMajorRelation: 'Relation',
+    chatRelFamily: 'Family',
+    chatRelFriend: 'Friend',
+    chatRelColleague: 'Colleague',
+    chatRelLover: 'Lover',
+    majorShow100Days: 'Show 100-day intervals (100, 200, 300 days...)',
+
+    // Pet Care Helper
+    helperPetCare: 'Pet Care Helper',
+    petCareStart: "🐾 I'll create a pet care schedule for you! Please answer a few questions.",
+    petCareAskType: 'What kind of pet do you have?\n🐶 Dog  /  🐱 Cat',
+    petCareAskName: "What's your pet's name? (e.g., Buddy, Luna)",
+    petCareAskAge: 'How old is your pet? (e.g., 24 months, 2 years)',
+    petCareAskSize: 'What size is your dog?\n1. Small  2. Medium  3. Large',
+    petCareAskIndoor: 'Does your pet live indoors only? (yes/no)',
+    petCareAskWakeUp: 'What time do you wake up? (e.g., 7am, 07:00)',
+    petCareAskMorePets: 'Do you have more pets? (yes/no)',
+    petCareAskSimultaneous: 'Do you care for your pets at the same time? (yes/no)\nYes: Same feeding, walking times etc.\nNo: Separate time slots for each pet',
+    petCareProfileFound: 'Found your existing profile!',
+    petCareScheduleGenerated: '🐾 Your pet care schedule is ready! Please review and register:',
+    petCareBatchSaved: 'Pet care schedule registered! Check your calendar. 🐾',
+    petCareCancelled: 'Pet care helper cancelled. Type "pet care helper" to start again.',
+    petCareScheduleOf: "'s Daily Care Schedule",
 }
 
 export default en

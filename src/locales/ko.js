@@ -125,6 +125,7 @@ const ko = {
     helperAskDays: '며칠치 스케줄을 만들까요?',
     helperAskDaysRetry: '일수를 인식하지 못했어요. 숫자로 입력해주세요. (예: 1, 3, 7)',
     helperDayUnit: '일',
+    helperTemplateDayLabel: '▼ 매일 반복할 일정 (항목 제거 시 모든 날짜에 적용)',
 
     // Daily Schedule Management
     dailyScheduleMode: '일상',
@@ -165,15 +166,20 @@ const ko = {
 
     // Major Events Helper
     majorEventsMode: '행사',
+    petCareMode: '펫',
     majorTab_holiday: '공휴일',
     majorTab_birthday: '생일',
     majorTab_anniversary: '기념일',
+    majorTab_event: '행사',
     majorTab_vacation: '연차추천',
     majorNoHolidays: '공휴일 데이터가 없습니다.',
     majorPastHolidays: '지난 공휴일',
     majorNoBirthdays: '등록된 생일이 없습니다.',
     majorNoAnniversaries: '등록된 기념일이 없습니다.',
+    majorNoEvents: '등록된 행사가 없습니다.',
     majorAddBirthday: '생일 추가',
+    majorAddEvent: '행사 추가',
+    majorEventNamePlaceholder: '행사 이름 (예: 동창회)',
     majorAddAnniversary: '기념일 추가',
     majorNamePlaceholder: '이름 (예: 엄마)',
     majorAnniversaryNamePlaceholder: '기념일 이름 (예: 연인 기념일)',
@@ -193,6 +199,33 @@ const ko = {
     majorVacRatio: (p) => `${p.n}배`,
     majorDayUnit: '일',
     helperMajorEvents: '휴일 도우미',
+
+    // Chat → Major Events
+    chatConfirmMajorEvent: '주요 행사를 확인해주세요:',
+    chatMajorEventSaved: '주요 행사에 등록되었습니다! 행사 탭에서 확인하세요.',
+    chatMajorRelation: '관계',
+    chatRelFamily: '가족',
+    chatRelFriend: '친구',
+    chatRelColleague: '직장동료',
+    chatRelLover: '연인',
+    majorShow100Days: '100일 단위 표시 (100일, 200일, 300일...)',
+
+    // Pet Care Helper
+    helperPetCare: '펫 케어 도우미',
+    petCareStart: '🐾 펫 케어 스케줄을 만들어 드릴게요! 몇 가지 질문에 답해주세요.',
+    petCareAskType: '어떤 동물을 키우시나요?\n🐶 강아지  /  🐱 고양이',
+    petCareAskName: '이름이 뭐예요? (예: 초코, 나비)',
+    petCareAskAge: '나이가 어떻게 되나요? (예: 24개월, 2살)',
+    petCareAskSize: '크기가 어느 정도인가요?\n1. 소형  2. 중형  3. 대형',
+    petCareAskIndoor: '실내에서만 생활하나요? (예/아니오)',
+    petCareAskWakeUp: '보호자 기상 시간은? (예: 7시, 07:00)',
+    petCareAskMorePets: '다른 반려동물이 더 있나요? (예/아니오)',
+    petCareAskSimultaneous: '반려동물들을 같은 시간에 함께 케어하나요? (예/아니오)\n예: 같은 시간에 밥주기, 산책 등\n아니오: 각각 따로 시간 배정',
+    petCareProfileFound: '기존 프로필을 찾았어요!',
+    petCareScheduleGenerated: '🐾 돌봄 스케줄이 완성되었어요! 확인 후 등록해주세요:',
+    petCareBatchSaved: '펫 케어 스케줄이 등록되었습니다! 캘린더에서 확인하세요. 🐾',
+    petCareCancelled: '펫 케어 도우미를 취소했습니다. 다시 시작하려면 "펫 케어 도우미"라고 입력하세요.',
+    petCareScheduleOf: '의 하루 돌봄 스케줄',
 }
 
 export default ko

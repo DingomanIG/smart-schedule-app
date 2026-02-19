@@ -116,7 +116,7 @@ export async function addBatchEvents(userId, events, date) {
       : null
 
     const newDocRef = doc(eventsRef)
-    batch.set(newDocRef, {
+    const docData = {
       userId,
       title: event.title,
       startTime: Timestamp.fromDate(startDate),
@@ -126,7 +126,9 @@ export async function addBatchEvents(userId, events, date) {
       attendees: [],
       createdAt: Timestamp.now(),
       createdVia: 'helper',
-    })
+    }
+    if (event.careType) docData.careType = event.careType
+    batch.set(newDocRef, docData)
   })
 
   await batch.commit()

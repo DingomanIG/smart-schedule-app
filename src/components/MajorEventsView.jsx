@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Flag, Cake, Heart, Palmtree, Plus, X, Trash2,
-  Calendar, ChevronDown, ChevronUp, AlertTriangle,
+  Calendar, ChevronDown, ChevronUp, AlertTriangle, PartyPopper,
 } from 'lucide-react'
 import {
   getHolidaysForYear, getDDay, analyzeVacationEfficiency,
@@ -15,6 +15,7 @@ const TABS = [
   { key: 'holiday', icon: Flag, color: 'red' },
   { key: 'birthday', icon: Cake, color: 'pink' },
   { key: 'anniversary', icon: Heart, color: 'purple' },
+  { key: 'event', icon: PartyPopper, color: 'orange' },
   { key: 'vacation', icon: Palmtree, color: 'green' },
 ]
 
@@ -35,7 +36,7 @@ export default function MajorEventsView({ userId, onEventCreated }) {
   const { lang, t } = useLanguage()
   const [activeTab, setActiveTab] = useState('holiday')
   const [loading, setLoading] = useState(true)
-  const [majorEvents, setMajorEvents] = useState({ birthdays: [], anniversaries: [] })
+  const [majorEvents, setMajorEvents] = useState({ birthdays: [], anniversaries: [], events: [] })
   const [showAddForm, setShowAddForm] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [expandedVacation, setExpandedVacation] = useState(null)
@@ -47,6 +48,7 @@ export default function MajorEventsView({ userId, onEventCreated }) {
   const [addRelation, setAddRelation] = useState('family')
   const [addCalendarType, setAddCalendarType] = useState('solar')
   const [addMemo, setAddMemo] = useState('')
+  const [addShow100Days, setAddShow100Days] = useState(true)
 
   const currentYear = new Date().getFullYear()
 
@@ -59,6 +61,7 @@ export default function MajorEventsView({ userId, onEventCreated }) {
         setMajorEvents({
           birthdays: profile.birthdays || [],
           anniversaries: profile.anniversaries || [],
+          events: profile.events || [],
         })
       }
     } catch {
@@ -75,6 +78,7 @@ export default function MajorEventsView({ userId, onEventCreated }) {
     try {
       await saveHelperProfile(userId, 'H12', updated)
     } catch { /* demo mode */ }
+    onEventCreated?.()
   }
 
   // Add birthday
@@ -103,11 +107,30 @@ export default function MajorEventsView({ userId, onEventCreated }) {
       id: Date.now().toString(),
       name: addName.trim(),
       startDate: addDate, // YYYY-MM-DD format
+      show100Days: addShow100Days,
       memo: addMemo.trim(),
     }
     const updated = {
       ...majorEvents,
       anniversaries: [...majorEvents.anniversaries, newAnniversary],
+    }
+    await saveMajorEvents(updated)
+    resetForm()
+  }
+
+  // Add event (행사)
+  const handleAddEvent = async () => {
+    if (!addName.trim() || !addDate) return
+    const newEvent = {
+      id: Date.now().toString(),
+      name: addName.trim(),
+      startDate: addDate, // YYYY-MM-DD format
+      show100Days: addShow100Days,
+      memo: addMemo.trim(),
+    }
+    const updated = {
+      ...majorEvents,
+      events: [...majorEvents.events, newEvent],
     }
     await saveMajorEvents(updated)
     resetForm()
@@ -131,6 +154,7 @@ export default function MajorEventsView({ userId, onEventCreated }) {
     setAddRelation('family')
     setAddCalendarType('solar')
     setAddMemo('')
+    setAddShow100Days(true)
   }
 
   useEffect(() => {
@@ -168,17 +192,29 @@ export default function MajorEventsView({ userId, onEventCreated }) {
 
   // Anniversaries with auto-generated dates
   const anniversariesWithDates = majorEvents.anniversaries.map((a) => {
-    const dates = generateAnniversaryDates(a.startDate)
+    const allDates = generateAnniversaryDates(a.startDate)
+    const dates = a.show100Days === false ? allDates.filter((d) => !d.label.match(/^\d+일$/)) : allDates
     const upcomingDates = dates.filter((d) => getDDay(d.date) >= 0)
     const nextDate = upcomingDates[0] || null
     const totalDays = getDDay(a.startDate) * -1 // 시작일로부터 경과일
     return { ...a, generatedDates: dates, nextDate, totalDays }
   })
 
+  // Events (행사) with D-Day - same structure as anniversaries
+  const eventsWithDates = majorEvents.events.map((e) => {
+    const allDates = generateAnniversaryDates(e.startDate)
+    const dates = e.show100Days === false ? allDates.filter((d) => !d.label.match(/^\d+일$/)) : allDates
+    const upcomingDates = dates.filter((d) => getDDay(d.date) >= 0)
+    const nextDate = upcomingDates[0] || null
+    const totalDays = getDDay(e.startDate) * -1
+    return { ...e, generatedDates: dates, nextDate, totalDays }
+  })
+
   const tabColor = {
     holiday: 'red',
     birthday: 'pink',
     anniversary: 'purple',
+    event: 'orange',
     vacation: 'green',
   }
 
@@ -195,7 +231,7 @@ export default function MajorEventsView({ userId, onEventCreated }) {
                 ? `bg-${color}-500 text-white`
                 : `bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400`
             } hover:opacity-80`}
-            style={activeTab === key ? { backgroundColor: color === 'red' ? '#ef4444' : color === 'pink' ? '#ec4899' : color === 'purple' ? '#a855f7' : '#22c55e' } : {}}
+            style={activeTab === key ? { backgroundColor: color === 'red' ? '#ef4444' : color === 'pink' ? '#ec4899' : color === 'purple' ? '#a855f7' : color === 'orange' ? '#f97316' : '#22c55e' } : {}}
           >
             <Icon size={11} />
             {t(`majorTab_${key}`)}
@@ -203,7 +239,7 @@ export default function MajorEventsView({ userId, onEventCreated }) {
         ))}
 
         {/* Add button for birthday/anniversary tabs */}
-        {(activeTab === 'birthday' || activeTab === 'anniversary') && (
+        {(activeTab === 'birthday' || activeTab === 'anniversary' || activeTab === 'event') && (
           <button
             onClick={() => setShowAddForm(!showAddForm)}
             className={`flex items-center justify-center w-6 h-6 rounded-full shrink-0 transition-colors ${
@@ -220,17 +256,19 @@ export default function MajorEventsView({ userId, onEventCreated }) {
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2 min-h-0">
         {/* Add Form */}
-        {showAddForm && (activeTab === 'birthday' || activeTab === 'anniversary') && (
+        {showAddForm && (activeTab === 'birthday' || activeTab === 'anniversary' || activeTab === 'event') && (
           <div className={`rounded-lg border p-3 space-y-2 ${
             activeTab === 'birthday'
               ? 'border-pink-200 dark:border-pink-800 bg-pink-50/50 dark:bg-pink-900/10'
-              : 'border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-900/10'
+              : activeTab === 'event'
+                ? 'border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-900/10'
+                : 'border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-900/10'
           }`}>
             <div className="flex items-center justify-between">
               <span className={`text-xs font-medium ${
-                activeTab === 'birthday' ? 'text-pink-600 dark:text-pink-400' : 'text-purple-600 dark:text-purple-400'
+                activeTab === 'birthday' ? 'text-pink-600 dark:text-pink-400' : activeTab === 'event' ? 'text-orange-600 dark:text-orange-400' : 'text-purple-600 dark:text-purple-400'
               }`}>
-                {activeTab === 'birthday' ? t('majorAddBirthday') : t('majorAddAnniversary')}
+                {activeTab === 'birthday' ? t('majorAddBirthday') : activeTab === 'event' ? t('majorAddEvent') : t('majorAddAnniversary')}
               </span>
               <button onClick={resetForm} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                 <X size={14} />
@@ -239,10 +277,10 @@ export default function MajorEventsView({ userId, onEventCreated }) {
             <input
               ref={titleRef}
               type="text"
-              placeholder={activeTab === 'birthday' ? t('majorNamePlaceholder') : t('majorAnniversaryNamePlaceholder')}
+              placeholder={activeTab === 'birthday' ? t('majorNamePlaceholder') : activeTab === 'event' ? t('majorEventNamePlaceholder') : t('majorAnniversaryNamePlaceholder')}
               value={addName}
               onChange={(e) => setAddName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && (activeTab === 'birthday' ? handleAddBirthday() : handleAddAnniversary())}
+              onKeyDown={(e) => e.key === 'Enter' && (activeTab === 'birthday' ? handleAddBirthday() : activeTab === 'event' ? handleAddEvent() : handleAddAnniversary())}
               className="w-full text-sm px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 outline-none focus:border-blue-400"
             />
             <div className="flex items-center gap-2">
@@ -286,12 +324,53 @@ export default function MajorEventsView({ userId, onEventCreated }) {
                   </select>
                 </div>
               ) : (
-                <input
-                  type="date"
-                  value={addDate}
-                  onChange={(e) => setAddDate(e.target.value)}
-                  className="text-xs px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none"
-                />
+                <div className="flex items-center gap-1">
+                  <select
+                    value={addDate ? addDate.split('-')[0] : ''}
+                    onChange={(e) => {
+                      const yyyy = e.target.value
+                      const mm = addDate ? addDate.split('-')[1] : '01'
+                      const dd = addDate ? addDate.split('-')[2] : '01'
+                      setAddDate(yyyy ? `${yyyy}-${mm || '01'}-${dd || '01'}` : '')
+                    }}
+                    className="text-xs px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none"
+                  >
+                    <option value="">{lang === 'ko' ? '연도' : 'Year'}</option>
+                    {Array.from({ length: 52 }, (_, i) => currentYear - 50 + i).map((y) => (
+                      <option key={y} value={String(y)}>{y}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={addDate ? addDate.split('-')[1] : ''}
+                    onChange={(e) => {
+                      const yyyy = addDate ? addDate.split('-')[0] : String(currentYear)
+                      const mm = e.target.value
+                      const dd = addDate ? addDate.split('-')[2] : '01'
+                      setAddDate(mm ? `${yyyy || currentYear}-${mm}-${dd || '01'}` : '')
+                    }}
+                    className="text-xs px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none"
+                  >
+                    <option value="">{lang === 'ko' ? '월' : 'Month'}</option>
+                    {Array.from({ length: 12 }, (_, i) => (
+                      <option key={i + 1} value={String(i + 1).padStart(2, '0')}>{i + 1}{lang === 'ko' ? '월' : ''}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={addDate ? addDate.split('-')[2] : ''}
+                    onChange={(e) => {
+                      const yyyy = addDate ? addDate.split('-')[0] : String(currentYear)
+                      const mm = addDate ? addDate.split('-')[1] : '01'
+                      const dd = e.target.value
+                      setAddDate(dd ? `${yyyy || currentYear}-${mm || '01'}-${dd}` : '')
+                    }}
+                    className="text-xs px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none"
+                  >
+                    <option value="">{lang === 'ko' ? '일' : 'Day'}</option>
+                    {Array.from({ length: 31 }, (_, i) => (
+                      <option key={i + 1} value={String(i + 1).padStart(2, '0')}>{i + 1}{lang === 'ko' ? '일' : ''}</option>
+                    ))}
+                  </select>
+                </div>
               )}
               {activeTab === 'birthday' && (
                 <select
@@ -310,17 +389,30 @@ export default function MajorEventsView({ userId, onEventCreated }) {
               placeholder={t('majorMemoPlaceholder')}
               value={addMemo}
               onChange={(e) => setAddMemo(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && (activeTab === 'birthday' ? handleAddBirthday() : handleAddAnniversary())}
+              onKeyDown={(e) => e.key === 'Enter' && (activeTab === 'birthday' ? handleAddBirthday() : activeTab === 'event' ? handleAddEvent() : handleAddAnniversary())}
               className="w-full text-sm px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 outline-none focus:border-blue-400"
             />
+            {(activeTab === 'anniversary' || activeTab === 'event') && (
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={addShow100Days}
+                  onChange={(e) => setAddShow100Days(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border-gray-300 dark:border-gray-600 text-blue-500 focus:ring-blue-400"
+                />
+                <span className="text-xs text-gray-600 dark:text-gray-400">{t('majorShow100Days')}</span>
+              </label>
+            )}
             <div className="flex justify-end">
               <button
-                onClick={activeTab === 'birthday' ? handleAddBirthday : handleAddAnniversary}
+                onClick={activeTab === 'birthday' ? handleAddBirthday : activeTab === 'event' ? handleAddEvent : handleAddAnniversary}
                 disabled={!addName.trim() || !addDate}
                 className={`px-3 py-1 text-xs font-medium rounded-lg text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                   activeTab === 'birthday'
                     ? 'bg-pink-500 hover:bg-pink-600'
-                    : 'bg-purple-500 hover:bg-purple-600'
+                    : activeTab === 'event'
+                      ? 'bg-orange-500 hover:bg-orange-600'
+                      : 'bg-purple-500 hover:bg-purple-600'
                 }`}
               >
                 {t('majorAddBtn')}
@@ -524,6 +616,75 @@ export default function MajorEventsView({ userId, onEventCreated }) {
                                 <span className="flex-1" />
                                 <span className={`font-semibold ${
                                   dday === 0 ? 'text-purple-500' : dday <= 7 ? 'text-purple-400' : 'text-gray-400 dark:text-gray-500'
+                                }`}>
+                                  {formatDDay(dday, lang)}
+                                </span>
+                              </div>
+                            )
+                          })}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* === Event (행사) Tab === */}
+            {activeTab === 'event' && (
+              <div className="space-y-2">
+                {eventsWithDates.length === 0 && !showAddForm ? (
+                  <div className="flex flex-col items-center justify-center h-40 text-center gap-2">
+                    <PartyPopper size={28} className="text-gray-300 dark:text-gray-600" />
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('majorNoEvents')}</p>
+                    <button
+                      onClick={() => setShowAddForm(true)}
+                      className="mt-1 flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors"
+                    >
+                      <Plus size={14} />
+                      {t('majorAddEvent')}
+                    </button>
+                  </div>
+                ) : (
+                  eventsWithDates.map((e) => (
+                    <div key={e.id} className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                      <div className="px-3 py-2 bg-orange-50/50 dark:bg-orange-900/10 flex items-center gap-2">
+                        <PartyPopper size={12} className="shrink-0 text-orange-400" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{e.name}</p>
+                          <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                            {e.startDate} {t('majorStartDate')} · D+{e.totalDays}
+                            {e.memo && ` · ${e.memo}`}
+                          </p>
+                        </div>
+                        {e.nextDate && (
+                          <span className="text-xs font-semibold text-orange-500 shrink-0">
+                            {t('majorNext')}: {e.nextDate.label}
+                          </span>
+                        )}
+                        <button
+                          onClick={() => setDeleteConfirm({ type: 'events', id: e.id, name: e.name })}
+                          className="shrink-0 p-0.5 rounded transition-colors text-gray-300 dark:text-gray-600 hover:text-red-400"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                      <div className="divide-y divide-gray-100 dark:divide-gray-700/50">
+                        {e.generatedDates
+                          .filter((d) => getDDay(d.date) >= 0)
+                          .slice(0, 5)
+                          .map((d) => {
+                            const dday = getDDay(d.date)
+                            return (
+                              <div key={d.date} className="flex items-center gap-2 px-3 py-1.5 text-xs">
+                                <span className={`font-medium ${
+                                  dday === 0 ? 'text-orange-500' : 'text-gray-600 dark:text-gray-400'
+                                }`}>
+                                  {lang === 'ko' ? d.label : d.labelEn}
+                                </span>
+                                <span className="text-gray-400 dark:text-gray-500">{d.date.slice(5)}</span>
+                                <span className="flex-1" />
+                                <span className={`font-semibold ${
+                                  dday === 0 ? 'text-orange-500' : dday <= 7 ? 'text-orange-400' : 'text-gray-400 dark:text-gray-500'
                                 }`}>
                                   {formatDDay(dday, lang)}
                                 </span>

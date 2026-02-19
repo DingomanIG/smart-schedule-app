@@ -3,7 +3,7 @@ import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
 import { Clock, MapPin, Trash2, GripVertical, CheckCircle2, Circle } from 'lucide-react'
 import { getEvents, deleteEvent, moveEvent, toggleEventCompleted } from '../services/schedule'
-import { getMonthHolidayMap } from '../data/koreanHolidays'
+import { getMonthHolidayMap, generateAnniversaryDates } from '../data/koreanHolidays'
 import { getHelperProfile } from '../services/helperProfile'
 import { lunarToSolar } from '../utils/lunarConverter'
 import DayView from './DayView'
@@ -42,6 +42,8 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
     getMonthHolidayMap(new Date().getFullYear(), new Date().getMonth() + 1)
   )
   const [birthdayMap, setBirthdayMap] = useState(new Map())
+  const [anniversaryMap, setAnniversaryMap] = useState(new Map())
+  const [eventMap, setEventMap] = useState(new Map())
   const [localNow, setLocalNow] = useState(new Date())
   const nowTimerRef = useRef(null)
   const now = nowProp || localNow
@@ -119,12 +121,15 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
     fetchMonthEvents(selectedDate).finally(() => setLoading(false))
   }, [userId, refreshKey])
 
-  // 생일 데이터 로드
+  // 생일/기념일/행사 데이터 로드
   useEffect(() => {
-    const loadBirthdays = async () => {
+    const loadMajorEvents = async () => {
       try {
         const profile = await getHelperProfile(userId, 'H12')
-        if (profile?.birthdays?.length > 0) {
+        if (!profile) return
+
+        // 생일
+        if (profile.birthdays?.length > 0) {
           const map = new Map()
           const thisYear = new Date().getFullYear()
           profile.birthdays.forEach((b) => {
@@ -134,7 +139,6 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
             const mmdd = `${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`
             for (let y = thisYear - 1; y <= thisYear + 1; y++) {
               if (b.calendarType === 'lunar') {
-                // 음력→양력 변환
                 const solarDate = lunarToSolar(y, month, day)
                 if (solarDate) map.set(solarDate, b.name)
               } else {
@@ -144,9 +148,35 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
           })
           setBirthdayMap(map)
         }
+
+        // 기념일
+        if (profile.anniversaries?.length > 0) {
+          const map = new Map()
+          profile.anniversaries.forEach((a) => {
+            const allDates = generateAnniversaryDates(a.startDate)
+            const dates = a.show100Days === false ? allDates.filter((d) => !d.label.match(/^\d+일$/)) : allDates
+            dates.forEach((d) => {
+              map.set(d.date, { name: a.name, label: d.label, labelEn: d.labelEn })
+            })
+          })
+          setAnniversaryMap(map)
+        }
+
+        // 행사
+        if (profile.events?.length > 0) {
+          const map = new Map()
+          profile.events.forEach((e) => {
+            const allDates = generateAnniversaryDates(e.startDate)
+            const dates = e.show100Days === false ? allDates.filter((d) => !d.label.match(/^\d+일$/)) : allDates
+            dates.forEach((d) => {
+              map.set(d.date, { name: e.name, label: d.label, labelEn: d.labelEn })
+            })
+          })
+          setEventMap(map)
+        }
       } catch { /* demo mode */ }
     }
-    loadBirthdays()
+    loadMajorEvents()
   }, [userId, refreshKey])
 
   const handleActiveStartDateChange = ({ activeStartDate }) => {
@@ -202,6 +232,8 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
     const dateStr = toLocalDateStr(date)
     const holidayName = holidayMap.get(dateStr)
     const birthdayName = birthdayMap.get(dateStr)
+    const anniversaryInfo = anniversaryMap.get(dateStr)
+    const eventInfo = eventMap.get(dateStr)
     const count = monthEvents.filter((evt) => {
       const evtDate = evt.startTime?.toDate?.()
         ? toLocalDateStr(evt.startTime.toDate())
@@ -222,6 +254,20 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
           <div className="absolute top-0.5 left-1/2 -translate-x-1/2 w-full px-0.5" title={`${birthdayName} 생일`}>
             <span className="block text-[12px] leading-tight text-pink-500 dark:text-pink-400 truncate text-center font-medium">
               {birthdayName} 생일
+            </span>
+          </div>
+        )}
+        {!holidayName && !birthdayName && anniversaryInfo && (
+          <div className="absolute top-0.5 left-1/2 -translate-x-1/2 w-full px-0.5" title={`${anniversaryInfo.name} ${lang === 'ko' ? anniversaryInfo.label : anniversaryInfo.labelEn}`}>
+            <span className="block text-[12px] leading-tight text-purple-500 dark:text-purple-400 truncate text-center font-medium">
+              {anniversaryInfo.name} {lang === 'ko' ? anniversaryInfo.label : anniversaryInfo.labelEn}
+            </span>
+          </div>
+        )}
+        {!holidayName && !birthdayName && !anniversaryInfo && eventInfo && (
+          <div className="absolute top-0.5 left-1/2 -translate-x-1/2 w-full px-0.5" title={`${eventInfo.name} ${lang === 'ko' ? eventInfo.label : eventInfo.labelEn}`}>
+            <span className="block text-[12px] leading-tight text-orange-500 dark:text-orange-400 truncate text-center font-medium">
+              {eventInfo.name} {lang === 'ko' ? eventInfo.label : eventInfo.labelEn}
             </span>
           </div>
         )}

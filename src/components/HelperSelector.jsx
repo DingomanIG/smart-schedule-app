@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Sparkles, Sun, Flag } from 'lucide-react'
+import { Sparkles, Sun, Flag, PawPrint, Briefcase } from 'lucide-react'
 import { useLanguage } from '../hooks/useLanguage'
 
 export default function HelperSelector({ onSelectHelper, disabled }) {
@@ -51,6 +51,20 @@ export default function HelperSelector({ onSelectHelper, disabled }) {
           >
             <Flag size={14} className="text-red-500" />
             {t('helperMajorEvents')}
+          </button>
+          <button
+            onClick={() => handleSelect('petcare')}
+            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            <PawPrint size={14} className="text-teal-500" />
+            {t('helperPetCare')}
+          </button>
+          <button
+            onClick={() => handleSelect('work')}
+            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            <Briefcase size={14} className="text-indigo-500" />
+            {t('helperWork')}
           </button>
         </div>
       )}

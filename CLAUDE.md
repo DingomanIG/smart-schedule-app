@@ -54,6 +54,7 @@ All prefixed with `VITE_`. Required: `VITE_OPENAI_API_KEY`, `VITE_FIREBASE_API_K
 - All user-facing text in Korean
 - New docs go in `docs/` subfolders with version suffix (`_v1.0.md`)
 - `docs/`, `test-screenshots/` are dev-only — never put deployable code there
+- UI에 이모지/아이콘 사용을 최대한 배제한다. 예외: 스케줄 도우미(Helper) 영역 또는 화면 최상단 우측 영역에 배치하는 경우에만 허용.
 
 # currentDate
 Today's date is 2026-02-18.

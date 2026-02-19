@@ -102,8 +102,8 @@ export async function deleteAllEvents(userId) {
   return snapshot.size
 }
 
-// Batch Create - 일상 도우미 일괄 일정 생성
-export async function addBatchEvents(userId, events, date) {
+// Batch Create - 도우미 일괄 일정 생성
+export async function addBatchEvents(userId, events, date, helperId) {
   const batch = writeBatch(db)
   const eventsRef = collection(db, 'events')
 
@@ -127,6 +127,7 @@ export async function addBatchEvents(userId, events, date) {
       createdAt: Timestamp.now(),
       createdVia: 'helper',
     }
+    if (helperId) docData.helperId = helperId
     if (event.careType) docData.careType = event.careType
     batch.set(newDocRef, docData)
   })

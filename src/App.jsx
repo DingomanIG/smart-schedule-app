@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import { BarChart3, LogOut, X, Moon, Sun, BookOpen, MessageSquare, CalendarCheck, Bell, Flag } from 'lucide-react'
+import { BarChart3, LogOut, X, Moon, Sun, BookOpen, MessageSquare, CalendarCheck, Bell, Flag, PawPrint, Briefcase } from 'lucide-react'
 import { useAuth } from './hooks/useAuth'
 import { useDarkMode } from './hooks/useDarkMode'
 import { useLanguage } from './hooks/useLanguage'
@@ -11,6 +11,7 @@ import AuthForm from './components/AuthForm'
 import ChatInterface from './components/ChatInterface'
 import DailyScheduleView from './components/DailyScheduleView'
 import MajorEventsView from './components/MajorEventsView'
+import WorkScheduleView from './components/WorkScheduleView'
 import CalendarView from './components/CalendarView'
 import WeeklyReport from './components/WeeklyReport'
 import NotificationSettings from './components/NotificationSettings'
@@ -233,6 +234,28 @@ function MainApp() {
               <Flag size={13} />
               {t('majorEventsMode')}
             </button>
+            <button
+              onClick={() => setChatMode('petcare')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors min-w-[64px] justify-center ${
+                chatMode === 'petcare'
+                  ? 'bg-teal-500 text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              <PawPrint size={13} />
+              {t('petCareMode')}
+            </button>
+            <button
+              onClick={() => setChatMode('work')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors min-w-[64px] justify-center ${
+                chatMode === 'work'
+                  ? 'bg-indigo-500 text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              <Briefcase size={13} />
+              {t('workScheduleMode')}
+            </button>
           </div>
 
           {/* Content Area */}
@@ -240,9 +263,13 @@ function MainApp() {
             {chatMode === 'chat' ? (
               <ChatInterface userId={user.uid} onEventCreated={handleEventCreated} />
             ) : chatMode === 'schedule' ? (
-              <DailyScheduleView userId={user.uid} onEventCreated={handleEventCreated} />
-            ) : (
+              <DailyScheduleView key="daily" userId={user.uid} onEventCreated={handleEventCreated} />
+            ) : chatMode === 'major' ? (
               <MajorEventsView userId={user.uid} onEventCreated={handleEventCreated} />
+            ) : chatMode === 'work' ? (
+              <WorkScheduleView userId={user.uid} onEventCreated={handleEventCreated} />
+            ) : (
+              <DailyScheduleView key="petcare" userId={user.uid} onEventCreated={handleEventCreated} petCareMode />
             )}
           </div>
         </section>

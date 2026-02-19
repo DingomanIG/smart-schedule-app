@@ -103,7 +103,27 @@ export async function parseSchedule(userMessage, recentEvents = [], lastEventCon
 - 일정 이동/날짜·시간 변경: action = "move" (키워드: 옮겨, 변경, 바꿔, 이동)
 - 일정 수정(제목/장소 등): action = "update" (키워드: 제목 바꿔, 장소 변경)
 - 일정 삭제/취소: action = "delete" (키워드: 취소, 삭제, 빼줘)
+- 생일/기념일/행사 등록: action = "add_major_event" (아래 규칙 참조)
 - 명확하지 않으면 action = "create"
+
+주요 행사(생일/기념일/행사) 등록 규칙 (action = "add_major_event"):
+- 키워드: "생일 추가/등록", "기념일 추가/등록", "행사 추가/등록", "~의 생일", "~생일이야"
+- "생일", "기념일", "행사/동창회/졸업식/모임" 키워드가 포함되고 등록/추가/알려 의도가 있으면 add_major_event
+- 단순히 "생일 파티"처럼 일정으로 쓰이는 경우는 create로 처리
+- 응답 형식:
+{
+  "action": "add_major_event",
+  "majorEventType": "birthday | anniversary | event",
+  "name": "사람/기념일/행사 이름",
+  "date": "MM-DD (생일) 또는 YYYY-MM-DD (기념일/행사)",
+  "calendarType": "solar 또는 lunar (생일만, 기본값 solar)",
+  "relation": "family | friend | colleague | lover (생일만, 기본값 family)",
+  "memo": "추가 메모 또는 빈 문자열"
+}
+- 생일: date는 MM-DD 형식 (연도 없음). "음력"이라고 하면 calendarType = "lunar"
+- 기념일/행사: date는 YYYY-MM-DD 형식. 연도가 없으면 현재 연도 사용
+- relation 추론: 엄마/아빠/형/동생 등 → family, 친구 → friend, 직장동료/팀장 → colleague, 여자친구/남자친구/연인 → lover
+- name 추론: "엄마 생일" → name: "엄마", "내 생일" → name: "나", "연인 기념일" → name: "연인 기념일"
 
 기존 일정 매칭 규칙:
 - 아래 "기존 일정 목록"에서 사용자가 언급한 일정을 제목·날짜·시간으로 매칭
@@ -304,6 +324,268 @@ export async function generateDailySchedule(preferences) {
 
   return {
     action: 'create_batch',
+    date: today,
+    events: fixedEvents,
+  }
+}
+
+/**
+ * 펫 케어 스케줄 생성 - GPT-4o-mini로 돌봄 일정 생성
+ * @param {object} petInfo - { petType, petName, petAge, petSize, petIndoor, wakeUp }
+ * @returns {object} { action: "petcare_batch", events: [...] }
+ */
+export async function generatePetCareSchedule(petInfo) {
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+
+  // 다중 펫 지원: pets 배열이 있으면 사용, 없으면 레거시 단일 펫
+  const pets = petInfo.pets || [{ petType: petInfo.petType, petName: petInfo.petName, petAge: petInfo.petAge, petSize: petInfo.petSize, petIndoor: petInfo.petIndoor }]
+  const simultaneous = petInfo.simultaneous ?? true
+
+  const petDescriptions = pets.map((p, i) => {
+    const typeKo = p.petType === 'dog' ? '강아지' : '고양이'
+    const sizeKo = p.petSize === 'small' ? '소형' : p.petSize === 'large' ? '대형' : '중형'
+    return `반려동물${pets.length > 1 ? ` ${i + 1}` : ''}: ${p.petName} (${typeKo})
+나이: ${p.petAge}개월
+${p.petType === 'dog' ? `크기: ${sizeKo}` : ''}
+실내 생활: ${p.petIndoor ? '예' : '아니오'}`
+  }).join('\n\n')
+
+  const userInfo = `${petDescriptions}
+${pets.length > 1 ? `\n동시 케어: ${simultaneous ? '예 (같은 시간에 함께)' : '아니오 (각각 따로)'}` : ''}
+보호자 기상: ${petInfo.wakeUp || '07:00'}
+오늘 날짜: ${today}`.trim()
+
+  const body = {
+    model: 'gpt-4o-mini',
+    messages: [
+      {
+        role: 'system',
+        content: `너는 반려동물 돌봄 스케줄 전문가야.
+반려동물 정보를 바탕으로 하루 돌봄 스케줄을 JSON으로 생성해.
+
+규칙:
+- 동물 종류(강아지/고양이)에 맞는 돌봄 항목 생성
+- 나이(개월 수)에 따라 밥 횟수, 산책 시간, 놀이 강도 조절
+- 보호자 기상 시간을 기준으로 시간 배분
+- 각 항목에 예상 소요 시간(duration, 분 단위) 포함
+- 반려동물 이름을 title에 포함
+- category는 "펫 케어"로 통일
+- careType은 반드시 다음 중 하나: feeding, water, walk, toilet, play, grooming, health, vet, medicine
+- title에 아이콘 붙이지 말고 반려동물 이름과 케어 이름만 사용 (예: "미루 아침 밥 주기")
+
+다중 반려동물 규칙:
+- 여러 마리일 경우 각 반려동물 이름을 title에 명시
+- "동시 케어: 예"이면 같은 종류의 케어를 같은 시간에 묶어서 생성 (예: "미루&보리 아침 밥 주기")
+- "동시 케어: 아니오"이면 각 반려동물 별로 따로 시간을 배정 (겹치지 않게)
+
+강아지 필수 항목: 밥(2회, 아기면 3~4회), 산책(2회), 놀이(1~2회)
+강아지 선택 항목: 배변 패드 교체(실내견), 양치질, 빗질
+강아지 크기별 산책: 소형 20분, 중형 30분, 대형 40분+
+강아지 아기(0~6개월): 짧은 산책 10~15분, 밥 3~4회, 짧은 놀이
+강아지 노령(7년+): 짧은 산책 20분, 부드러운 놀이
+
+고양이 필수 항목: 밥(2회, 아기면 3~4회), 물 갈아주기, 화장실 청소(1~2회), 놀이(1~2회)
+고양이 선택 항목: 빗질(주 3회), 귀 청소, 발톱
+고양이 아기(0~6개월): 밥 3~4회, 짧고 자주 놀아주기
+고양이 노령(10년+): 밥 2~3회 소량, 부드러운 놀이
+
+시간 배치 규칙:
+- 기상 직후: 밥 주기 + 산책(강아지) 또는 밥 + 물 + 화장실(고양이)
+- 오전~오후: 놀이, 간식
+- 저녁: 밥 + 산책(강아지) 또는 밥 + 물 + 화장실(고양이) + 놀이
+- 밤: 양치질, 빗질 등 관리
+- 활동 간 5~10분 간격 유지
+- 절대 시간 겹침 금지
+
+응답 형식 (JSON만 반환):
+{
+  "action": "petcare_batch",
+  "events": [
+    { "title": "🍽️ 초코 아침 밥 주기", "time": "07:00", "duration": 10, "category": "펫 케어", "careType": "feeding" }
+  ]
+}`,
+      },
+      {
+        role: 'user',
+        content: userInfo,
+      },
+    ],
+    temperature: 0.5,
+  }
+
+  let data
+
+  if (isDev) {
+    const response = await fetch('/api/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify(body),
+    })
+    data = await response.json()
+  } else {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    data = await response.json()
+  }
+
+  if (data.error) {
+    throw new Error(data.error.message || 'OpenAI API 호출 실패')
+  }
+
+  const result = data.choices[0].message.content
+  const jsonMatch = result.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) throw new Error('GPT 응답 파싱 실패')
+
+  const parsed = JSON.parse(jsonMatch[0])
+
+  if (!parsed.events || !Array.isArray(parsed.events) || parsed.events.length === 0) {
+    throw new Error('생성된 스케줄이 비어있습니다')
+  }
+
+  // 시간 겹침 후처리 보정
+  const fixedEvents = fixOverlappingEvents(parsed.events)
+
+  return {
+    action: 'petcare_batch',
+    date: today,
+    events: fixedEvents,
+  }
+}
+
+/**
+ * 업무 스케줄 생성 - GPT-4o-mini로 하루 업무 스케줄 생성
+ * @param {object} profile - { workType, workStart, workEnd, focusPeak, lunchTime }
+ * @param {string} tasks - 사용자 입력 태스크 텍스트
+ * @returns {object} { action: "work_batch", events: [...] }
+ */
+export async function generateWorkSchedule(profile, tasks) {
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+
+  const workTypeKo = {
+    office: '사무직 (출근)',
+    remote: '재택근무',
+    hybrid: '하이브리드',
+    freelance: '프리랜서',
+  }
+
+  const focusPeakKo = {
+    morning: '오전 집중형',
+    afternoon: '오후 집중형',
+    none: '차이 없음',
+  }
+
+  const userInfo = `
+근무 형태: ${workTypeKo[profile.workType] || profile.workType}
+근무 시간: ${profile.workStart || '09:00'} ~ ${profile.workEnd || '18:00'}
+집중 시간대: ${focusPeakKo[profile.focusPeak] || '차이 없음'}
+오늘 태스크: ${tasks}
+오늘 날짜: ${today}`.trim()
+
+  const body = {
+    model: 'gpt-4o-mini',
+    messages: [
+      {
+        role: 'system',
+        content: `너는 업무 생산성 전문 스케줄 설계사야.
+사용자의 근무 환경과 태스크 목록을 바탕으로 최적의 하루 업무 스케줄을 JSON으로 생성해.
+
+규칙:
+1. 타임블록킹 원칙 적용: 같은 종류의 작업을 묶어 컨텍스트 스위칭 최소화
+2. 딥워크(집중 업무)는 사용자의 최고 집중 시간대에 우선 배치
+3. 딥워크 블록은 최소 60분, 최대 120분 단위로 설계
+4. 딥워크 블록 사이에 반드시 15분 이상 휴식(break) 삽입
+5. "회의"나 "미팅" 키워드가 태스크에 있으면 meeting 카테고리로 배치, 전후 10분 버퍼 확보
+6. 회의 직후에는 후속 정리(admin) 15분 배치
+7. 마감/급한/긴급 키워드가 있으면 deadline 카테고리로, 가장 집중 시간대에 배치
+8. 업무 시작 직후 "이메일/메신저 확인" (30분, admin) 배치 — 하루 1회만, 업무 시작 시 바로
+9. 하루 끝에 "하루 마무리 + 내일 계획" (30분, admin) 배치
+10. 근무 시간 내 모든 시간이 채워지도록 배분 (공백 없이)
+11. 점심 식사는 포함하지 않음 — 사용자가 직접 관리
+12. **절대 시간 겹침 금지**: 모든 이벤트의 시간이 겹치지 않도록 하세요
+13. 모든 제목은 한국어로 작성
+14. duration은 분 단위
+15. category는 반드시 다음 중 하나: deepwork, meeting, admin, planning, communication, break, commute, deadline
+
+사용자가 입력한 태스크에서 각 업무를 파악하고 적절한 category를 배정해:
+- 보고서/작성/개발/코딩/디자인 등 집중 업무 → deepwork
+- 회의/미팅/콜 → meeting
+- 이메일/정리/보고서 정리 → admin
+- 기획/브레인스토밍/전략 → planning
+- 1:1/소통/피드백 → communication
+- 점심/커피/산책 → break
+- 출퇴근 → commute (사무직일 때만)
+- 마감 임박/긴급 → deadline
+
+태스크가 큰 경우(2시간 이상 예상) → "블록 1", "블록 2"로 분할하여 집중 시간대에 분산 배치
+태스크에 예상 시간이 명시되면 그대로 사용, 아니면 적절히 추정
+
+오늘 날짜: ${today}
+
+응답 형식 (JSON만 반환):
+{
+  "action": "work_batch",
+  "events": [
+    { "title": "하루 계획 정리", "time": "09:00", "duration": 15, "category": "admin" },
+    { "title": "보고서 작성 — 딥워크 블록 1", "time": "09:15", "duration": 90, "category": "deepwork" }
+  ]
+}`,
+      },
+      {
+        role: 'user',
+        content: userInfo,
+      },
+    ],
+    temperature: 0.5,
+  }
+
+  let data
+
+  if (isDev) {
+    const response = await fetch('/api/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify(body),
+    })
+    data = await response.json()
+  } else {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    data = await response.json()
+  }
+
+  if (data.error) {
+    throw new Error(data.error.message || 'OpenAI API 호출 실패')
+  }
+
+  const result = data.choices[0].message.content
+  const jsonMatch = result.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) throw new Error('GPT 응답 파싱 실패')
+
+  const parsed = JSON.parse(jsonMatch[0])
+
+  if (!parsed.events || !Array.isArray(parsed.events) || parsed.events.length === 0) {
+    throw new Error('생성된 스케줄이 비어있습니다')
+  }
+
+  // 시간 겹침 후처리 보정
+  const fixedEvents = fixOverlappingEvents(parsed.events)
+
+  return {
+    action: 'work_batch',
     date: today,
     events: fixedEvents,
   }

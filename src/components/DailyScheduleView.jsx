@@ -138,11 +138,15 @@ export default function DailyScheduleView({ userId, onEventCreated, petCareMode 
       const farPast = new Date(2020, 0, 1)
       const farFuture = new Date(2030, 11, 31)
       const allEvents = await getEvents(userId, farPast, farFuture)
+      const WORK_CATEGORIES = ['deepwork', 'meeting', 'admin', 'planning', 'communication', 'break', 'deadline']
       const helperEvents = allEvents
         .filter((evt) => {
           if (evt.createdVia !== 'helper') return false
           const isPet = evt.category === '펫 케어'
-          return petCareMode ? isPet : !isPet
+          if (petCareMode) return isPet
+          // 일상 모드: 펫 케어와 업무 이벤트 제외
+          const isWork = evt.helperId === 'H04' || WORK_CATEGORIES.includes(evt.category)
+          return !isPet && !isWork
         })
         .sort((a, b) => {
           const aTime = a.startTime?.toDate?.()?.getTime() || 0

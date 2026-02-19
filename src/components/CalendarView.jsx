@@ -4,6 +4,8 @@ import 'react-calendar/dist/Calendar.css'
 import { Clock, MapPin, Trash2, GripVertical, CheckCircle2, Circle } from 'lucide-react'
 import { getEvents, deleteEvent, moveEvent, toggleEventCompleted } from '../services/schedule'
 import { getMonthHolidayMap } from '../data/koreanHolidays'
+import { getHelperProfile } from '../services/helperProfile'
+import { lunarToSolar } from '../utils/lunarConverter'
 import DayView from './DayView'
 import WeekView from './WeekView'
 import { useLanguage } from '../hooks/useLanguage'
@@ -39,6 +41,7 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
   const [holidayMap, setHolidayMap] = useState(() =>
     getMonthHolidayMap(new Date().getFullYear(), new Date().getMonth() + 1)
   )
+  const [birthdayMap, setBirthdayMap] = useState(new Map())
   const [localNow, setLocalNow] = useState(new Date())
   const nowTimerRef = useRef(null)
   const now = nowProp || localNow
@@ -116,6 +119,36 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
     fetchMonthEvents(selectedDate).finally(() => setLoading(false))
   }, [userId, refreshKey])
 
+  // 생일 데이터 로드
+  useEffect(() => {
+    const loadBirthdays = async () => {
+      try {
+        const profile = await getHelperProfile(userId, 'H12')
+        if (profile?.birthdays?.length > 0) {
+          const map = new Map()
+          const thisYear = new Date().getFullYear()
+          profile.birthdays.forEach((b) => {
+            const [mm, dd] = b.date.split('-')
+            const month = parseInt(mm)
+            const day = parseInt(dd)
+            const mmdd = `${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`
+            for (let y = thisYear - 1; y <= thisYear + 1; y++) {
+              if (b.calendarType === 'lunar') {
+                // 음력→양력 변환
+                const solarDate = lunarToSolar(y, month, day)
+                if (solarDate) map.set(solarDate, b.name)
+              } else {
+                map.set(`${y}-${mmdd}`, b.name)
+              }
+            }
+          })
+          setBirthdayMap(map)
+        }
+      } catch { /* demo mode */ }
+    }
+    loadBirthdays()
+  }, [userId, refreshKey])
+
   const handleActiveStartDateChange = ({ activeStartDate }) => {
     fetchMonthEvents(activeStartDate)
     setHolidayMap(getMonthHolidayMap(activeStartDate.getFullYear(), activeStartDate.getMonth() + 1))
@@ -168,6 +201,7 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
     if (view !== 'month') return null
     const dateStr = toLocalDateStr(date)
     const holidayName = holidayMap.get(dateStr)
+    const birthdayName = birthdayMap.get(dateStr)
     const count = monthEvents.filter((evt) => {
       const evtDate = evt.startTime?.toDate?.()
         ? toLocalDateStr(evt.startTime.toDate())
@@ -179,8 +213,15 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
       <>
         {holidayName && (
           <div className="absolute top-0.5 left-1/2 -translate-x-1/2 w-full px-0.5" title={holidayName}>
-            <span className="block text-[7px] leading-tight text-red-500 dark:text-red-400 truncate text-center font-medium">
+            <span className="block text-[12px] leading-tight text-red-500 dark:text-red-400 truncate text-center font-medium">
               {holidayName}
+            </span>
+          </div>
+        )}
+        {!holidayName && birthdayName && (
+          <div className="absolute top-0.5 left-1/2 -translate-x-1/2 w-full px-0.5" title={`${birthdayName} 생일`}>
+            <span className="block text-[12px] leading-tight text-pink-500 dark:text-pink-400 truncate text-center font-medium">
+              {birthdayName} 생일
             </span>
           </div>
         )}

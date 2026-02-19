@@ -8,6 +8,7 @@ import {
   generateAnniversaryDates,
 } from '../data/koreanHolidays'
 import { getHelperProfile, saveHelperProfile } from '../services/helperProfile'
+import { lunarToSolar } from '../utils/lunarConverter'
 import { useLanguage } from '../hooks/useLanguage'
 
 const TABS = [
@@ -44,6 +45,7 @@ export default function MajorEventsView({ userId, onEventCreated }) {
   const [addName, setAddName] = useState('')
   const [addDate, setAddDate] = useState('')
   const [addRelation, setAddRelation] = useState('family')
+  const [addCalendarType, setAddCalendarType] = useState('solar')
   const [addMemo, setAddMemo] = useState('')
 
   const currentYear = new Date().getFullYear()
@@ -82,6 +84,7 @@ export default function MajorEventsView({ userId, onEventCreated }) {
       id: Date.now().toString(),
       name: addName.trim(),
       date: addDate, // MM-DD format
+      calendarType: addCalendarType, // 'solar' or 'lunar'
       relation: addRelation,
       memo: addMemo.trim(),
     }
@@ -126,6 +129,7 @@ export default function MajorEventsView({ userId, onEventCreated }) {
     setAddName('')
     setAddDate('')
     setAddRelation('family')
+    setAddCalendarType('solar')
     setAddMemo('')
   }
 
@@ -141,13 +145,24 @@ export default function MajorEventsView({ userId, onEventCreated }) {
   // Vacation efficiency
   const vacationResults = analyzeVacationEfficiency(currentYear)
 
-  // Birthdays with this year's date + D-Day
+  // Birthdays with this year's date + D-Day (음력→양력 변환 포함)
   const birthdaysWithDDay = majorEvents.birthdays.map((b) => {
-    const thisYearDate = `${currentYear}-${b.date}`
+    const [mm, dd] = b.date.split('-')
+    const month = parseInt(mm)
+    const day = parseInt(dd)
+
+    let thisYearDate, nextYearDate
+    if (b.calendarType === 'lunar') {
+      thisYearDate = lunarToSolar(currentYear, month, day) || `${currentYear}-${b.date}`
+      nextYearDate = lunarToSolar(currentYear + 1, month, day) || `${currentYear + 1}-${b.date}`
+    } else {
+      thisYearDate = `${currentYear}-${b.date}`
+      nextYearDate = `${currentYear + 1}-${b.date}`
+    }
+
     const dday = getDDay(thisYearDate)
-    // If already passed, show next year
-    const displayDate = dday < 0 ? `${currentYear + 1}-${b.date}` : thisYearDate
-    const displayDDay = dday < 0 ? getDDay(displayDate) : dday
+    const displayDate = dday < 0 ? nextYearDate : thisYearDate
+    const displayDDay = dday < 0 ? getDDay(nextYearDate) : dday
     return { ...b, displayDate, dday: displayDDay }
   }).sort((a, b) => a.dday - b.dday)
 
@@ -231,23 +246,53 @@ export default function MajorEventsView({ userId, onEventCreated }) {
               className="w-full text-sm px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 outline-none focus:border-blue-400"
             />
             <div className="flex items-center gap-2">
-              <input
-                type={activeTab === 'birthday' ? 'date' : 'date'}
-                value={addDate}
-                onChange={(e) => {
-                  if (activeTab === 'birthday') {
-                    // Extract MM-DD from full date
-                    const val = e.target.value
-                    if (val) {
-                      const parts = val.split('-')
-                      setAddDate(`${parts[1]}-${parts[2]}`)
-                    }
-                  } else {
-                    setAddDate(e.target.value)
-                  }
-                }}
-                className="text-xs px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none"
-              />
+              {activeTab === 'birthday' ? (
+                <div className="flex items-center gap-1">
+                  <select
+                    value={addCalendarType}
+                    onChange={(e) => setAddCalendarType(e.target.value)}
+                    className="text-xs px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none"
+                  >
+                    <option value="solar">양력</option>
+                    <option value="lunar">음력</option>
+                  </select>
+                  <select
+                    value={addDate ? addDate.split('-')[0] : ''}
+                    onChange={(e) => {
+                      const mm = e.target.value
+                      const dd = addDate ? addDate.split('-')[1] : '01'
+                      setAddDate(mm ? `${mm}-${dd || '01'}` : '')
+                    }}
+                    className="text-xs px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none"
+                  >
+                    <option value="">월</option>
+                    {Array.from({ length: 12 }, (_, i) => (
+                      <option key={i + 1} value={String(i + 1).padStart(2, '0')}>{i + 1}월</option>
+                    ))}
+                  </select>
+                  <select
+                    value={addDate ? addDate.split('-')[1] : ''}
+                    onChange={(e) => {
+                      const mm = addDate ? addDate.split('-')[0] : '01'
+                      const dd = e.target.value
+                      setAddDate(dd ? `${mm || '01'}-${dd}` : '')
+                    }}
+                    className="text-xs px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none"
+                  >
+                    <option value="">일</option>
+                    {Array.from({ length: 31 }, (_, i) => (
+                      <option key={i + 1} value={String(i + 1).padStart(2, '0')}>{i + 1}일</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <input
+                  type="date"
+                  value={addDate}
+                  onChange={(e) => setAddDate(e.target.value)}
+                  className="text-xs px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none"
+                />
+              )}
               {activeTab === 'birthday' && (
                 <select
                   value={addRelation}
@@ -399,7 +444,7 @@ export default function MajorEventsView({ userId, onEventCreated }) {
                             )}
                           </div>
                           <p className="text-[11px] text-gray-400 dark:text-gray-500">
-                            {b.date}
+                            {b.date} · {b.calendarType === 'lunar' ? '음력' : '양력'}
                             {b.memo && ` · ${b.memo}`}
                           </p>
                         </div>

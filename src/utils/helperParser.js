@@ -208,7 +208,7 @@ export function isDailyHelperTrigger(text) {
 
   // 스케줄 오타 변형: 스캐줄, 스케쥴 등 (케/캐 필수)
   const scheduleVariants = /스[케캐][줄쥴]/
-  const routineVariants = /루틴|일정/
+  const routineVariants = /루틴/
 
   const patterns = [
     /일상\s*스[케캐][줄쥴]/,

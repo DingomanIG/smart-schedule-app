@@ -17,7 +17,7 @@ const ko = {
     contact: '문의하기',
 
     // Auth
-    subtitle: 'AI로 일정을 쉽게 관리하세요',
+    subtitle: 'AI로 스케줄을 쉽게 관리하세요',
     email: '이메일',
     password: '비밀번호',
     passwordPlaceholder: '6자 이상',
@@ -164,7 +164,7 @@ const ko = {
     notificationStartsAt: '에 시작합니다',
 
     // Major Events Helper
-    majorEventsMode: '휴일',
+    majorEventsMode: '행사',
     majorTab_holiday: '공휴일',
     majorTab_birthday: '생일',
     majorTab_anniversary: '기념일',

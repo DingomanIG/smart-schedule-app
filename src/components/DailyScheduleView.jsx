@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
-  Trash2, Pencil, AlertTriangle,
+  Trash2, Pencil, AlertTriangle, Plus, X,
   User, ClipboardList, ChevronDown, ChevronUp,
 } from 'lucide-react'
-import { getEvents, deleteEvent, updateEvent } from '../services/schedule'
+import { getEvents, deleteEvent, updateEvent, addBatchEvents } from '../services/schedule'
 import { getHelperProfile } from '../services/helperProfile'
 import { useLanguage } from '../hooks/useLanguage'
 import { Timestamp } from 'firebase/firestore'
@@ -61,6 +61,15 @@ export default function DailyScheduleView({ userId, onEventCreated }) {
   const [editEnd, setEditEnd] = useState('')
   const editRef = useRef(null)
 
+  // Add form state
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [addTitle, setAddTitle] = useState('')
+  const [addStart, setAddStart] = useState('09:00')
+  const [addEnd, setAddEnd] = useState('09:30')
+  const [addCategory, setAddCategory] = useState('routine')
+  const [addDays, setAddDays] = useState(7)
+  const addTitleRef = useRef(null)
+
   const fetchEvents = useCallback(async () => {
     setLoading(true)
     try {
@@ -115,6 +124,34 @@ export default function DailyScheduleView({ userId, onEventCreated }) {
     } catch { /* ignore */ }
     setDeleteConfirm(null)
   }
+
+  // Add new schedule
+  const handleAdd = async () => {
+    if (!addTitle.trim() || !addStart) return
+    const [sh, sm] = addStart.split(':').map(Number)
+    const [eh, em] = addEnd ? addEnd.split(':').map(Number) : [sh, sm + 30]
+    const duration = (eh * 60 + em) - (sh * 60 + sm)
+    const batchEvents = []
+    for (let i = 0; i < addDays; i++) {
+      const d = new Date()
+      d.setDate(d.getDate() + i)
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      batchEvents.push({ title: addTitle.trim(), time: addStart, duration: duration > 0 ? duration : 30, category: addCategory })
+      await addBatchEvents(userId, [{ title: addTitle.trim(), time: addStart, duration: duration > 0 ? duration : 30, category: addCategory }], dateStr)
+    }
+    setShowAddForm(false)
+    setAddTitle('')
+    setAddStart('09:00')
+    setAddEnd('09:30')
+    setAddCategory('routine')
+    setAddDays(7)
+    fetchEvents()
+    onEventCreated?.()
+  }
+
+  useEffect(() => {
+    if (showAddForm && addTitleRef.current) addTitleRef.current.focus()
+  }, [showAddForm])
 
   // Toggle disabled (hide from calendar) for all events in a group
   const handleToggleGroup = async (groupEvents) => {
@@ -242,20 +279,76 @@ export default function DailyScheduleView({ userId, onEventCreated }) {
                 </button>
               )
             })}
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className={`flex items-center justify-center w-6 h-6 rounded-full shrink-0 transition-colors ${
+              showAddForm
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-500'
+            }`}
+            title="일정 추가"
+          >
+            {showAddForm ? <X size={12} /> : <Plus size={12} />}
+          </button>
         </div>
       )}
 
       {/* Event List - grouped by title */}
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2 min-h-0">
+        {/* Add Form */}
+        {showAddForm && (
+          <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10 p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-blue-600 dark:text-blue-400">일정 추가</span>
+              <button onClick={() => setShowAddForm(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <X size={14} />
+              </button>
+            </div>
+            <input
+              ref={addTitleRef}
+              type="text"
+              placeholder="일정 이름"
+              value={addTitle}
+              onChange={(e) => setAddTitle(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+              className="w-full text-sm px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 outline-none focus:border-blue-400"
+            />
+            <div className="flex items-center gap-2">
+              <input type="time" value={addStart} onChange={(e) => setAddStart(e.target.value)} className="text-xs font-mono px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none" />
+              <span className="text-gray-400 text-xs">~</span>
+              <input type="time" value={addEnd} onChange={(e) => setAddEnd(e.target.value)} className="text-xs font-mono px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none" />
+            </div>
+            <div className="flex items-center gap-2">
+              <select value={addCategory} onChange={(e) => setAddCategory(e.target.value)} className="text-xs px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none">
+                {CATEGORY_TABS.filter((c) => c.key !== 'all').map((c) => (
+                  <option key={c.key} value={c.key}>{c.label}</option>
+                ))}
+              </select>
+              <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                <input type="number" min={1} max={365} value={addDays} onChange={(e) => setAddDays(Number(e.target.value))} className="w-12 px-1.5 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none text-center" />
+                <span>일간</span>
+              </div>
+              <span className="flex-1" />
+              <button onClick={handleAdd} disabled={!addTitle.trim()} className="px-3 py-1 text-xs font-medium rounded-lg bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                추가
+              </button>
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-sm text-gray-400 dark:text-gray-500">{t('loading')}</p>
           </div>
-        ) : events.length === 0 ? (
+        ) : events.length === 0 && !showAddForm ? (
           <div className="flex flex-col items-center justify-center h-full text-center gap-2">
             <ClipboardList size={32} className="text-gray-300 dark:text-gray-600" />
             <p className="text-sm text-gray-500 dark:text-gray-400">{t('noHelperEvents')}</p>
             <p className="text-xs text-gray-400 dark:text-gray-500">{t('noHelperEventsHint')}</p>
+            <button onClick={() => setShowAddForm(true)} className="mt-2 flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors">
+              <Plus size={14} />
+              일정 추가
+            </button>
           </div>
         ) : (
           filteredGroups.map(([titleKey, group]) => {
@@ -287,7 +380,7 @@ export default function DailyScheduleView({ userId, onEventCreated }) {
                 {/* Header: title + time + active/inactive + count + delete */}
                 <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800">
                   <div className="flex items-center gap-2">
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${catStyle}`}>
+                    <span className={`text-[10px] w-14 text-center px-1.5 py-0.5 rounded-full font-medium shrink-0 ${catStyle}`}>
                       {group.category}
                     </span>
 
@@ -300,12 +393,12 @@ export default function DailyScheduleView({ userId, onEventCreated }) {
                         onChange={(e) => setEditValue(e.target.value)}
                         onKeyDown={(e) => handleEditKeyDown(e, group.events)}
                         onBlur={() => saveBulkEdit(group.events)}
-                        className="flex-1 text-sm font-medium px-1 py-0 rounded border border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/30 text-gray-800 dark:text-gray-100 outline-none min-w-0"
+                        className="w-20 text-sm font-medium px-1 py-0 rounded border border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/30 text-gray-800 dark:text-gray-100 outline-none"
                       />
                     ) : (
                       <button
                         onClick={() => startBulkEdit(titleKey, 'title', group.events)}
-                        className="min-w-0 text-left text-sm font-medium group flex items-center gap-1 text-gray-800 dark:text-gray-100"
+                        className="w-20 text-left text-sm font-semibold group flex items-center gap-1 text-gray-800 dark:text-gray-100 truncate"
                         title={t('editTitle')}
                       >
                         <span className="truncate">{titleKey}</span>
@@ -348,7 +441,7 @@ export default function DailyScheduleView({ userId, onEventCreated }) {
                     ) : (
                       <button
                         onClick={() => startBulkEdit(titleKey, 'time', group.events)}
-                        className="text-xs text-gray-400 dark:text-gray-500 font-mono shrink-0 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                        className="w-[130px] text-left text-xs text-gray-400 dark:text-gray-500 font-mono shrink-0 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
                         title={t('bulkEditTime')}
                       >
                         {mainStartFmt}{mainEndFmt ? `~${mainEndFmt}` : ''}
@@ -375,9 +468,11 @@ export default function DailyScheduleView({ userId, onEventCreated }) {
                       )
                     })()}
 
-                    <span className="text-[10px] text-gray-400 dark:text-gray-500 shrink-0">
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500 shrink-0 w-12">
                       {group.events.length}{t('eventsCount')}
                     </span>
+
+                    <span className="flex-1" />
 
                     {/* Group delete */}
                     <button

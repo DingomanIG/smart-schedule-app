@@ -1,11 +1,6 @@
 import { useState, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Clock, MapPin, Trash2, X } from 'lucide-react'
 
-const START_HOUR = 0
-const END_HOUR = 24
-const TOTAL_HOURS = END_HOUR - START_HOUR
-const HALF_HOURS = Array.from({ length: TOTAL_HOURS * 2 + 1 }, (_, i) => START_HOUR + i * 0.5)
-const FULL_HOURS = Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => i + START_HOUR)
 const DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일']
 
 const WORK_CATS = ['deepwork', 'meeting', 'admin', 'planning', 'communication', 'break', 'deadline']
@@ -62,14 +57,15 @@ const getWeekDates = (date) => {
 
 // 특정 날짜 기준으로 이벤트의 시작/종료 시간(소수 시간)을 반환
 // 자정을 넘는 이벤트는 해당 날짜에 보이는 부분만 잘라서 반환
-const getEventHoursForDate = (event, date) => {
+const getEventHoursForDate = (event, date, rangeStart, rangeEnd) => {
   const start = event.startTime?.toDate?.()
   if (!start) return null
   const end = event.endTime?.toDate?.()
   if (!end) {
     // endTime이 없으면 기존 로직 (startTime 날짜에만 표시)
-    const startHour = start.getHours() + start.getMinutes() / 60
-    return { start: startHour, end: startHour + 1 }
+    const startH = start.getHours() + start.getMinutes() / 60
+    if (startH + 1 <= rangeStart || startH >= rangeEnd) return null
+    return { start: Math.max(startH, rangeStart), end: Math.min(startH + 1, rangeEnd) }
   }
 
   const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate())
@@ -82,20 +78,21 @@ const getEventHoursForDate = (event, date) => {
   const clippedStart = start < dayStart ? dayStart : start
   const clippedEnd = end > dayEnd ? dayEnd : end
 
-  const startHour = clippedStart.getHours() + clippedStart.getMinutes() / 60
-  const endHour = clippedEnd <= dayStart ? 0 : (clippedEnd >= dayEnd ? END_HOUR : clippedEnd.getHours() + clippedEnd.getMinutes() / 60)
+  const startH = clippedStart.getHours() + clippedStart.getMinutes() / 60
+  const endH = clippedEnd <= dayStart ? 0 : (clippedEnd >= dayEnd ? rangeEnd : clippedEnd.getHours() + clippedEnd.getMinutes() / 60)
 
-  return {
-    start: Math.max(startHour, START_HOUR),
-    end: Math.min(endHour, END_HOUR),
-  }
+  const resultStart = Math.max(startH, rangeStart)
+  const resultEnd = Math.min(endH, rangeEnd)
+  if (resultStart >= resultEnd) return null
+
+  return { start: resultStart, end: resultEnd }
 }
 
 // 겹치는 이벤트 그룹 계산 → 각 이벤트에 column, totalColumns 할당
-const layoutEvents = (dayEvents, date) => {
+const layoutEvents = (dayEvents, date, rangeStart, rangeEnd) => {
   const items = dayEvents
     .map((evt) => {
-      const hours = getEventHoursForDate(evt, date)
+      const hours = getEventHoursForDate(evt, date, rangeStart, rangeEnd)
       if (!hours) return null
       return { evt, ...hours }
     })
@@ -146,7 +143,9 @@ const layoutEvents = (dayEvents, date) => {
   return result
 }
 
-export default function WeekView({ selectedDate, setSelectedDate, events, onDelete, onMoveEvent }) {
+export default function WeekView({ selectedDate, setSelectedDate, events, onDelete, onMoveEvent, startHour = 0, endHour = 24 }) {
+  const totalHours = endHour - startHour
+  const fullHours = Array.from({ length: totalHours + 1 }, (_, i) => i + startHour)
   const [popup, setPopup] = useState(null)
   const [dropTargetCol, setDropTargetCol] = useState(null)
   const [dropTimeIndicator, setDropTimeIndicator] = useState(null) // { col, hour }
@@ -228,11 +227,11 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
 
         {/* 시간 그리드 */}
         <div className="relative">
-          <div className="grid grid-cols-[40px_repeat(7,1fr)] relative" style={{ height: `${TOTAL_HOURS * 48}px` }}>
+          <div className="grid grid-cols-[40px_repeat(7,1fr)] relative" style={{ height: `${totalHours * 48}px` }}>
             {/* 시간 라벨 컬럼 */}
             <div className="relative">
-              {FULL_HOURS.map((hour) => {
-                const top = (hour - START_HOUR) * 48
+              {fullHours.map((hour) => {
+                const top = (hour - startHour) * 48
                 return (
                   <span
                     key={hour}
@@ -248,7 +247,7 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
             {/* 7개 컬럼 */}
             {weekDates.map((date, colIdx) => {
               const dayEvents = getEventsForDate(date)
-              const laid = layoutEvents(dayEvents, date)
+              const laid = layoutEvents(dayEvents, date, startHour, endHour)
               const isToday = toLocalDateStr(date) === today
 
               return (
@@ -261,9 +260,9 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
                     setDropTargetCol(colIdx)
                     const rect = e.currentTarget.getBoundingClientRect()
                     const y = e.clientY - rect.top
-                    const rawHour = y / 48
+                    const rawHour = startHour + y / 48
                     const snapped = Math.round(rawHour * 6) / 6
-                    const clamped = Math.max(0, Math.min(23 + 50/60, snapped))
+                    const clamped = Math.max(startHour, Math.min(endHour - 10/60, snapped))
                     setDropTimeIndicator({ col: colIdx, hour: clamped })
                   }}
                   onDragEnter={() => setDropTargetCol(colIdx)}
@@ -281,22 +280,22 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
                     if (!eventId || !onMoveEvent) return
                     const rect = e.currentTarget.getBoundingClientRect()
                     const y = e.clientY - rect.top
-                    const rawHour = y / 48
+                    const rawHour = startHour + y / 48
                     const snappedHour = Math.round(rawHour * 6) / 6
-                    const clampedHour = Math.max(0, Math.min(23 + 50/60, snappedHour))
+                    const clampedHour = Math.max(startHour, Math.min(endHour - 10/60, snappedHour))
                     onMoveEvent(eventId, toLocalDateStr(date), clampedHour)
                   }}
                 >
                   {/* 시간 그리드 라인 */}
-                  {FULL_HOURS.map((hour) => {
-                    const top = (hour - START_HOUR) * 48
+                  {fullHours.map((hour) => {
+                    const top = (hour - startHour) * 48
                     return (
                       <div key={hour}>
                         <div
                           className="absolute left-0 right-0 border-t border-gray-200 dark:border-gray-700"
                           style={{ top: `${top}px` }}
                         />
-                        {hour < END_HOUR && (
+                        {hour < endHour && (
                           <div
                             className="absolute left-0 right-0 border-t border-gray-100 dark:border-gray-800 border-dashed"
                             style={{ top: `${top + 24}px` }}
@@ -308,7 +307,7 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
 
                   {/* 이벤트 블록 */}
                   {laid.map((item) => {
-                    const top = (item.start - START_HOUR) * 48
+                    const top = (item.start - startHour) * 48
                     const height = Math.max((item.end - item.start) * 48, 22)
                     const width = `calc(${100 / item.totalColumns}% - 3px)`
                     const left = `calc(${(item.column / item.totalColumns) * 100}% + 1.5px)`
@@ -360,7 +359,7 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
                   {dropTimeIndicator && dropTimeIndicator.col === colIdx && (
                     <div
                       className="absolute left-0 right-0 z-30 pointer-events-none flex items-center"
-                      style={{ top: `${dropTimeIndicator.hour * 48}px`, transform: 'translateY(-50%)' }}
+                      style={{ top: `${(dropTimeIndicator.hour - startHour) * 48}px`, transform: 'translateY(-50%)' }}
                     >
                       <div className="w-2 h-2 bg-blue-500 rounded-full -ml-1" />
                       <div className="flex-1 border-t-2 border-blue-500 border-dashed" />

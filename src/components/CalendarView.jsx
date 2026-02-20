@@ -44,6 +44,7 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
   const [birthdayMap, setBirthdayMap] = useState(new Map())
   const [anniversaryMap, setAnniversaryMap] = useState(new Map())
   const [eventMap, setEventMap] = useState(new Map())
+  const [weekViewRange, setWeekViewRange] = useState({ startHour: 0, endHour: 24 })
   const [localNow, setLocalNow] = useState(new Date())
   const nowTimerRef = useRef(null)
   const now = nowProp || localNow
@@ -177,6 +178,22 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
       } catch { /* demo mode */ }
     }
     loadMajorEvents()
+  }, [userId, refreshKey])
+
+  // 수면 시간 기반 주간 뷰 표시 범위 로드
+  useEffect(() => {
+    const loadSleepRange = async () => {
+      try {
+        const profile = await getHelperProfile(userId, 'H01')
+        if (profile?.wakeUp) {
+          const wakeHour = parseInt(profile.wakeUp.split(':')[0], 10)
+          if (!isNaN(wakeHour)) {
+            setWeekViewRange({ startHour: Math.max(0, wakeHour - 1), endHour: 24 })
+          }
+        }
+      } catch { /* demo mode */ }
+    }
+    loadSleepRange()
   }, [userId, refreshKey])
 
   const handleActiveStartDateChange = ({ activeStartDate }) => {
@@ -463,6 +480,8 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
             events={monthEvents}
             onDelete={handleDelete}
             onMoveEvent={handleMoveEvent}
+            startHour={weekViewRange.startHour}
+            endHour={weekViewRange.endHour}
           />
         </div>
       )}

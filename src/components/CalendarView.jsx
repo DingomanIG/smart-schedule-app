@@ -180,21 +180,38 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
     loadMajorEvents()
   }, [userId, refreshKey])
 
-  // 수면 시간 기반 주간 뷰 표시 범위 로드
+  // 수면 시간 기반 주간 뷰 표시 범위 로드 (일상 카드의 수면 이벤트에서 추출)
   useEffect(() => {
-    const loadSleepRange = async () => {
-      try {
-        const profile = await getHelperProfile(userId, 'H01')
+    const loadSleepRange = () => {
+      // monthEvents에서 수면 이벤트 찾기 (helper로 생성된 routine 카테고리, 제목에 '수면' 포함)
+      const sleepEvent = monthEvents.find(
+        (evt) => evt.createdVia === 'helper' && evt.title?.includes('수면') && evt.startTime?.toDate
+      )
+      if (sleepEvent) {
+        const bedHour = sleepEvent.startTime.toDate().getHours()
+        const wakeHour = sleepEvent.endTime?.toDate?.()?.getHours() ?? NaN
+        if (!isNaN(wakeHour)) {
+          const start = Math.max(0, wakeHour - 1)
+          const end = Math.min(24, bedHour + 1)
+          setWeekViewRange({ startHour: start, endHour: Math.max(end, start + 1) })
+          return
+        }
+      }
+      // 수면 이벤트 없으면 프로필 폴백
+      getHelperProfile(userId, 'H01').then((profile) => {
         if (profile?.wakeUp) {
           const wakeHour = parseInt(profile.wakeUp.split(':')[0], 10)
+          const bedHour = profile.bedTime ? parseInt(profile.bedTime.split(':')[0], 10) : NaN
           if (!isNaN(wakeHour)) {
-            setWeekViewRange({ startHour: Math.max(0, wakeHour - 1), endHour: 24 })
+            const start = Math.max(0, wakeHour - 1)
+            const end = !isNaN(bedHour) ? Math.min(24, bedHour + 1) : 24
+            setWeekViewRange({ startHour: start, endHour: Math.max(end, start + 1) })
           }
         }
-      } catch { /* demo mode */ }
+      }).catch(() => { /* demo mode */ })
     }
     loadSleepRange()
-  }, [userId, refreshKey])
+  }, [userId, refreshKey, monthEvents])
 
   const handleActiveStartDateChange = ({ activeStartDate }) => {
     fetchMonthEvents(activeStartDate)

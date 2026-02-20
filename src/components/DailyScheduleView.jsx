@@ -177,8 +177,8 @@ export default function DailyScheduleView({ userId, onEventCreated, petCareMode 
       // 다중 펫 호환: pets 배열이 없으면 레거시 단일 펫에서 변환
       const pets = helperProfile.pets || [{ petType: helperProfile.petType || 'dog', petName: helperProfile.petName || '', petAge: helperProfile.petAge || '', petSize: helperProfile.petSize || '', petIndoor: helperProfile.petIndoor ?? true }]
       setProfileDraft({ pets, wakeUp: helperProfile.wakeUp || '07:00', simultaneous: helperProfile.simultaneous ?? true })
-    } else if (!petCareMode && helperProfile?.preferences) {
-      const p = helperProfile.preferences
+    } else if (!petCareMode && (helperProfile?.preferences || helperProfile?.wakeUp)) {
+      const p = helperProfile.preferences || helperProfile
       setProfileDraft({ wakeUp: p.wakeUp || '07:00', bedTime: p.bedTime || '23:00', breakfast: p.meals?.breakfast || '', lunch: p.meals?.lunch || '', dinner: p.meals?.dinner || '', commuteStart: p.commute?.startTime || '', commuteEnd: p.commute?.endTime || '', hasCommute: p.commute?.hasCommute ?? false, routines: p.routines?.join(', ') || '' })
     }
     setEditingProfile(true)
@@ -358,7 +358,6 @@ export default function DailyScheduleView({ userId, onEventCreated, petCareMode 
   }
 
   const dateLocale = lang === 'ko' ? 'ko-KR' : 'en-US'
-  const prefs = helperProfile?.preferences
 
   // Group events by title
   const grouped = {}
@@ -767,133 +766,96 @@ export default function DailyScheduleView({ userId, onEventCreated, petCareMode 
         )}
       </div>
 
-      {/* Profile Panel */}
-      <div className="border-t border-gray-200 dark:border-gray-700 shrink-0">
-        <button
-          onClick={() => setShowProfile(!showProfile)}
-          className="w-full flex items-center justify-between px-3 py-2 text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
-        >
-          <span className="flex items-center gap-1">
-            <User size={12} />
-            {t('profileStatus')}
-          </span>
-          {showProfile ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
-        </button>
-        {showProfile && (
-          <div className="px-3 pb-2 text-xs text-gray-500 dark:text-gray-400 space-y-1">
-            {editingProfile && profileDraft ? (
-              (() => {
-                const inp = "w-full text-xs px-1.5 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 outline-none"
-                const sel = "text-xs px-1.5 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 outline-none cursor-pointer"
-                const upd = (key, val) => setProfileDraft(prev => ({ ...prev, [key]: val }))
-                const updPet = (idx, key, val) => setProfileDraft(prev => {
-                  const pets = [...(prev.pets || [])]
-                  pets[idx] = { ...pets[idx], [key]: val }
-                  return { ...prev, pets }
-                })
-                const removePet = (idx) => setProfileDraft(prev => ({ ...prev, pets: prev.pets.filter((_, i) => i !== idx) }))
-                const addPet = () => setProfileDraft(prev => ({ ...prev, pets: [...(prev.pets || []), { petType: 'dog', petName: '', petAge: '', petSize: 'medium', petIndoor: true }] }))
-                return petCareMode ? (
-                  <div className="space-y-2">
-                    {(profileDraft.pets || []).map((pet, idx) => (
-                      <div key={idx} className="p-2 rounded border border-teal-200 dark:border-teal-800 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-medium text-teal-600 dark:text-teal-400">반려동물 {idx + 1}</span>
-                          {(profileDraft.pets || []).length > 1 && (
-                            <button onClick={() => removePet(idx)} className="text-[10px] text-red-400 hover:text-red-500">삭제</button>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="w-10 shrink-0">이름</span>
-                          <input value={pet.petName} onChange={(e) => updPet(idx, 'petName', e.target.value)} className={inp} />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="w-10 shrink-0">종류</span>
-                          <select value={pet.petType} onChange={(e) => updPet(idx, 'petType', e.target.value)} className={sel}>
-                            <option value="dog">🐶 강아지</option><option value="cat">🐱 고양이</option>
-                          </select>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="w-10 shrink-0">나이</span>
-                          <input value={pet.petAge} onChange={(e) => updPet(idx, 'petAge', e.target.value)} placeholder="예: 24개월" className={inp} />
-                        </div>
-                        {pet.petType === 'dog' && (
+      {/* Profile Panel - 펫 케어 모드에서만 표시 (일상 모드는 카드 자체가 프로필 역할) */}
+      {petCareMode && (
+        <div className="border-t border-gray-200 dark:border-gray-700 shrink-0">
+          <button
+            onClick={() => setShowProfile(!showProfile)}
+            className="w-full flex items-center justify-between px-3 py-2 text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+          >
+            <span className="flex items-center gap-1">
+              <User size={12} />
+              {t('profileStatus')}
+            </span>
+            {showProfile ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
+          </button>
+          {showProfile && (
+            <div className="px-3 pb-2 text-xs text-gray-500 dark:text-gray-400 space-y-1">
+              {editingProfile && profileDraft ? (
+                (() => {
+                  const inp = "w-full text-xs px-1.5 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 outline-none"
+                  const sel = "text-xs px-1.5 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 outline-none cursor-pointer"
+                  const upd = (key, val) => setProfileDraft(prev => ({ ...prev, [key]: val }))
+                  const updPet = (idx, key, val) => setProfileDraft(prev => {
+                    const pets = [...(prev.pets || [])]
+                    pets[idx] = { ...pets[idx], [key]: val }
+                    return { ...prev, pets }
+                  })
+                  const removePet = (idx) => setProfileDraft(prev => ({ ...prev, pets: prev.pets.filter((_, i) => i !== idx) }))
+                  const addPet = () => setProfileDraft(prev => ({ ...prev, pets: [...(prev.pets || []), { petType: 'dog', petName: '', petAge: '', petSize: 'medium', petIndoor: true }] }))
+                  return (
+                    <div className="space-y-2">
+                      {(profileDraft.pets || []).map((pet, idx) => (
+                        <div key={idx} className="p-2 rounded border border-teal-200 dark:border-teal-800 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-medium text-teal-600 dark:text-teal-400">반려동물 {idx + 1}</span>
+                            {(profileDraft.pets || []).length > 1 && (
+                              <button onClick={() => removePet(idx)} className="text-[10px] text-red-400 hover:text-red-500">삭제</button>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2">
-                            <span className="w-10 shrink-0">크기</span>
-                            <select value={pet.petSize} onChange={(e) => updPet(idx, 'petSize', e.target.value)} className={sel}>
-                              <option value="small">소형</option><option value="medium">중형</option><option value="large">대형</option>
+                            <span className="w-10 shrink-0">이름</span>
+                            <input value={pet.petName} onChange={(e) => updPet(idx, 'petName', e.target.value)} className={inp} />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="w-10 shrink-0">종류</span>
+                            <select value={pet.petType} onChange={(e) => updPet(idx, 'petType', e.target.value)} className={sel}>
+                              <option value="dog">강아지</option><option value="cat">고양이</option>
                             </select>
                           </div>
-                        )}
+                          <div className="flex items-center gap-2">
+                            <span className="w-10 shrink-0">나이</span>
+                            <input value={pet.petAge} onChange={(e) => updPet(idx, 'petAge', e.target.value)} placeholder="예: 24개월" className={inp} />
+                          </div>
+                          {pet.petType === 'dog' && (
+                            <div className="flex items-center gap-2">
+                              <span className="w-10 shrink-0">크기</span>
+                              <select value={pet.petSize} onChange={(e) => updPet(idx, 'petSize', e.target.value)} className={sel}>
+                                <option value="small">소형</option><option value="medium">중형</option><option value="large">대형</option>
+                              </select>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <span className="w-10 shrink-0">실내</span>
+                            <select value={pet.petIndoor ? 'true' : 'false'} onChange={(e) => updPet(idx, 'petIndoor', e.target.value === 'true')} className={sel}>
+                              <option value="true">실내</option><option value="false">실외</option>
+                            </select>
+                          </div>
+                        </div>
+                      ))}
+                      <button onClick={addPet} className="text-[11px] text-teal-500 hover:underline">+ 반려동물 추가</button>
+                      <div className="flex items-center gap-2">
+                        <span className="w-10 shrink-0">기상</span>
+                        <input type="time" value={profileDraft.wakeUp || '07:00'} onChange={(e) => upd('wakeUp', e.target.value)} className={inp} />
+                      </div>
+                      {(profileDraft.pets || []).length >= 2 && (
                         <div className="flex items-center gap-2">
-                          <span className="w-10 shrink-0">실내</span>
-                          <select value={pet.petIndoor ? 'true' : 'false'} onChange={(e) => updPet(idx, 'petIndoor', e.target.value === 'true')} className={sel}>
-                            <option value="true">실내</option><option value="false">실외</option>
+                          <span className="w-10 shrink-0">동시</span>
+                          <select value={profileDraft.simultaneous ? 'true' : 'false'} onChange={(e) => upd('simultaneous', e.target.value === 'true')} className={sel}>
+                            <option value="true">함께 케어</option><option value="false">따로 케어</option>
                           </select>
                         </div>
+                      )}
+                      <div className="flex gap-1.5 pt-1">
+                        <button onClick={saveProfile} className="px-2.5 py-1 text-[11px] rounded bg-teal-500 text-white hover:bg-teal-600">저장</button>
+                        <button onClick={cancelEditProfile} className="px-2.5 py-1 text-[11px] rounded bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500">취소</button>
                       </div>
-                    ))}
-                    <button onClick={addPet} className="text-[11px] text-teal-500 hover:underline">+ 반려동물 추가</button>
-                    <div className="flex items-center gap-2">
-                      <span className="w-10 shrink-0">기상</span>
-                      <input type="time" value={profileDraft.wakeUp || '07:00'} onChange={(e) => upd('wakeUp', e.target.value)} className={inp} />
                     </div>
-                    {(profileDraft.pets || []).length >= 2 && (
-                      <div className="flex items-center gap-2">
-                        <span className="w-10 shrink-0">동시</span>
-                        <select value={profileDraft.simultaneous ? 'true' : 'false'} onChange={(e) => upd('simultaneous', e.target.value === 'true')} className={sel}>
-                          <option value="true">함께 케어</option><option value="false">따로 케어</option>
-                        </select>
-                      </div>
-                    )}
-                    <div className="flex gap-1.5 pt-1">
-                      <button onClick={saveProfile} className="px-2.5 py-1 text-[11px] rounded bg-teal-500 text-white hover:bg-teal-600">저장</button>
-                      <button onClick={cancelEditProfile} className="px-2.5 py-1 text-[11px] rounded bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500">취소</button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="w-12 shrink-0">기상</span>
-                      <input type="time" value={profileDraft.wakeUp} onChange={(e) => upd('wakeUp', e.target.value)} className={inp} />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-12 shrink-0">취침</span>
-                      <input type="time" value={profileDraft.bedTime} onChange={(e) => upd('bedTime', e.target.value)} className={inp} />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-12 shrink-0">아침</span>
-                      <input type="time" value={profileDraft.breakfast} onChange={(e) => upd('breakfast', e.target.value)} className={inp} />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-12 shrink-0">점심</span>
-                      <input type="time" value={profileDraft.lunch} onChange={(e) => upd('lunch', e.target.value)} className={inp} />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-12 shrink-0">저녁</span>
-                      <input type="time" value={profileDraft.dinner} onChange={(e) => upd('dinner', e.target.value)} className={inp} />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-12 shrink-0">출근</span>
-                      <input type="time" value={profileDraft.commuteStart} onChange={(e) => upd('commuteStart', e.target.value)} className={inp} />
-                      <span>~</span>
-                      <input type="time" value={profileDraft.commuteEnd} onChange={(e) => upd('commuteEnd', e.target.value)} className={inp} />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-12 shrink-0">루틴</span>
-                      <input value={profileDraft.routines} onChange={(e) => upd('routines', e.target.value)} placeholder="운동, 독서, 명상" className={inp} />
-                    </div>
-                    <div className="flex gap-1.5 pt-1">
-                      <button onClick={saveProfile} className="px-2.5 py-1 text-[11px] rounded bg-blue-500 text-white hover:bg-blue-600">저장</button>
-                      <button onClick={cancelEditProfile} className="px-2.5 py-1 text-[11px] rounded bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500">취소</button>
-                    </div>
-                  </div>
-                )
-              })()
-            ) : (
-              <>
-                {petCareMode ? (
-                  helperProfile ? (
+                  )
+                })()
+              ) : (
+                <>
+                  {helperProfile ? (
                     (() => {
                       const pets = helperProfile.pets || [{ petType: helperProfile.petType, petName: helperProfile.petName, petAge: helperProfile.petAge, petSize: helperProfile.petSize }]
                       return <>
@@ -905,27 +867,18 @@ export default function DailyScheduleView({ userId, onEventCreated, petCareMode 
                     })()
                   ) : (
                     <p className="text-gray-400 dark:text-gray-500">{t('noProfile')}</p>
-                  )
-                ) : prefs ? (
-                  <>
-                    <p>{t('profileWakeUp')}: {prefs.wakeUp} | {t('profileBedTime')}: {prefs.bedTime}</p>
-                    <p>{t('profileMeals')}: {prefs.meals?.breakfast || '-'}, {prefs.meals?.lunch || '-'}, {prefs.meals?.dinner || '-'}</p>
-                    <p>{t('profileCommute')}: {prefs.commute?.hasCommute ? `${prefs.commute.startTime}~${prefs.commute.endTime}` : '-'}</p>
-                    {prefs.routines?.length > 0 && <p>{t('profileRoutines')}: {prefs.routines.join(', ')}</p>}
-                  </>
-                ) : (
-                  <p className="text-gray-400 dark:text-gray-500">{t('noProfile')}</p>
-                )}
-                {(helperProfile || prefs) && (
-                  <button onClick={startEditProfile} className="mt-1 flex items-center gap-1 text-[11px] text-blue-500 dark:text-blue-400 hover:underline">
-                    <Pencil size={10} /> 프로필 수정
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-        )}
-      </div>
+                  )}
+                  {helperProfile && (
+                    <button onClick={startEditProfile} className="mt-1 flex items-center gap-1 text-[11px] text-blue-500 dark:text-blue-400 hover:underline">
+                      <Pencil size={10} /> 프로필 수정
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (

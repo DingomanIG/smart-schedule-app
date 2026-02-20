@@ -8,6 +8,32 @@ const HALF_HOURS = Array.from({ length: TOTAL_HOURS * 2 + 1 }, (_, i) => START_H
 const FULL_HOURS = Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => i + START_HOUR)
 const DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일']
 
+const WORK_CATS = ['deepwork', 'meeting', 'admin', 'planning', 'communication', 'break', 'deadline']
+const CHILDCARE_CATS = ['feeding', 'sleep', 'play', 'bath', 'diaper', 'outing', 'hospital', 'development']
+
+// 이벤트의 도우미 타입을 판별 (helperId 우선, category 폴백)
+const getHelperType = (evt) => {
+  if (evt.createdVia !== 'helper') return null
+  if (evt.helperId === 'H03') return 'pet'
+  if (evt.helperId === 'H04') return 'work'
+  if (evt.helperId === 'H06') return 'childcare'
+  if (evt.helperId === 'H12') return 'majorEvents'
+  if (evt.helperId === 'H01') return 'daily'
+  // helperId 없을 때 category 기반 폴백
+  if (evt.category === '펫 케어') return 'pet'
+  if (WORK_CATS.includes(evt.category)) return 'work'
+  if (evt.category === '육아' || CHILDCARE_CATS.includes(evt.category)) return 'childcare'
+  return 'daily'
+}
+
+const HELPER_COLOR_MAP = {
+  daily:       { active: 'bg-blue-600 border-blue-700 shadow-md z-20',    normal: 'bg-blue-500 border-blue-600 hover:bg-blue-600 hover:shadow-sm z-10' },
+  pet:         { active: 'bg-teal-600 border-teal-700 shadow-md z-20',    normal: 'bg-teal-500 border-teal-600 hover:bg-teal-600 hover:shadow-sm z-10' },
+  work:        { active: 'bg-indigo-600 border-indigo-700 shadow-md z-20', normal: 'bg-indigo-500 border-indigo-600 hover:bg-indigo-600 hover:shadow-sm z-10' },
+  childcare:   { active: 'bg-pink-600 border-pink-700 shadow-md z-20',    normal: 'bg-pink-500 border-pink-600 hover:bg-pink-600 hover:shadow-sm z-10' },
+  majorEvents: { active: 'bg-red-600 border-red-700 shadow-md z-20',      normal: 'bg-red-500 border-red-600 hover:bg-red-600 hover:shadow-sm z-10' },
+}
+
 const toLocalDateStr = (date) => {
   const y = date.getFullYear()
   const m = String(date.getMonth() + 1).padStart(2, '0')
@@ -287,22 +313,16 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
                     const width = `calc(${100 / item.totalColumns}% - 3px)`
                     const left = `calc(${(item.column / item.totalColumns) * 100}% + 1.5px)`
                     const isActive = popup?.id === item.evt.id
-                    const isHelper = item.evt.createdVia === 'helper'
+                    const helperType = getHelperType(item.evt)
 
                     const startH = Math.floor(item.start)
                     const startM = Math.round((item.start - startH) * 60)
                     const timeStr = `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`
 
-                    let colorClasses
-                    if (isHelper) {
-                      colorClasses = isActive
-                        ? 'bg-emerald-600 border-emerald-700 shadow-md z-20'
-                        : 'bg-emerald-500 border-emerald-600 hover:bg-emerald-600 hover:shadow-sm z-10'
-                    } else {
-                      colorClasses = isActive
-                        ? 'bg-blue-600 border-blue-700 shadow-md z-20'
-                        : 'bg-blue-500 border-blue-600 hover:bg-blue-600 hover:shadow-sm z-10'
-                    }
+                    const colors = helperType
+                      ? HELPER_COLOR_MAP[helperType] || HELPER_COLOR_MAP.daily
+                      : { active: 'bg-blue-600 border-blue-700 shadow-md z-20', normal: 'bg-blue-500 border-blue-600 hover:bg-blue-600 hover:shadow-sm z-10' }
+                    const colorClasses = isActive ? colors.active : colors.normal
 
                     return (
                       <div

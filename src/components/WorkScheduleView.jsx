@@ -479,7 +479,7 @@ export default function WorkScheduleView({ userId, onEventCreated }) {
                       onClick={() => handleToggle(event.id, isDisabled)}
                       className={`relative shrink-0 w-9 h-5 rounded-full transition-colors duration-200 ${
                         !isDisabled
-                          ? 'bg-indigo-500 dark:bg-indigo-600'
+                          ? 'bg-blue-600 dark:bg-blue-500'
                           : 'bg-gray-300 dark:bg-gray-600'
                       }`}
                       title={!isDisabled ? (t('deactivateHint') || '비활성화') : (t('activateHint') || '활성화')}

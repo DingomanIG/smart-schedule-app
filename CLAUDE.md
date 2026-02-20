@@ -61,6 +61,7 @@ npm run preview  # 프로덕션 빌드 미리보기
 - 구현 전에 반드시 `docs/` 폴더의 관련 기획서를 먼저 읽을 것
 - 컴포넌트 생성 시 `docs/prompt/SCHEDULE_HELPER_DEV_GUIDE_v2.0.md`를 참고할 것
 - 기획서에 없는 기능은 임의로 추가하지 말 것
+- 문서 작성 시 다른 문서에 이미 정의된 내용을 중복 기술하지 말 것 — 참조(`docs/design/design-tokens.md` 참고 등)로 대체
 
 ## 금지 사항
 

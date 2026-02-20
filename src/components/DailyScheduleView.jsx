@@ -144,9 +144,10 @@ export default function DailyScheduleView({ userId, onEventCreated, petCareMode 
           if (evt.createdVia !== 'helper') return false
           const isPet = evt.category === '펫 케어'
           if (petCareMode) return isPet
-          // 일상 모드: 펫 케어와 업무 이벤트 제외
+          // 일상 모드: 펫 케어, 업무, 육아 이벤트 제외
           const isWork = evt.helperId === 'H04' || WORK_CATEGORIES.includes(evt.category)
-          return !isPet && !isWork
+          const isChildcare = evt.helperId === 'H06' || evt.category === '육아'
+          return !isPet && !isWork && !isChildcare
         })
         .sort((a, b) => {
           const aTime = a.startTime?.toDate?.()?.getTime() || 0

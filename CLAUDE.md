@@ -59,7 +59,7 @@ npm run preview  # 프로덕션 빌드 미리보기
 ## 작업 규칙
 
 - 구현 전에 반드시 `docs/` 폴더의 관련 기획서를 먼저 읽을 것
-- 컴포넌트 생성 시 `docs/guides/SCHEDULE_HELPER_DEV_GUIDE_v2.0.md`를 참고할 것
+- 컴포넌트 생성 시 `docs/prompt/SCHEDULE_HELPER_DEV_GUIDE_v2.0.md`를 참고할 것
 - 기획서에 없는 기능은 임의로 추가하지 말 것
 
 ## 금지 사항
@@ -84,8 +84,10 @@ src/
 │   ├── BatchConfirmCard.jsx         # 일상 도우미 배치 카드 (green)
 │   ├── PetCareCard.jsx              # 펫 케어 배치 카드 (teal)
 │   ├── WorkScheduleCard.jsx         # 업무 도우미 배치 카드 (indigo)
+│   ├── ChildcareCard.jsx            # 육아 도우미 배치 카드 (pink)
 │   ├── DailyScheduleView.jsx        # 일상/펫 전용 뷰 (듀얼 모드)
 │   ├── WorkScheduleView.jsx         # 업무 전용 뷰
+│   ├── ChildcareScheduleView.jsx    # 육아 전용 뷰
 │   ├── MajorEventsView.jsx          # 행사 전용 뷰
 │   ├── AuthForm.jsx                 # 로그인/회원가입
 │   ├── LanguageToggle.jsx           # 한/영 전환
@@ -99,7 +101,8 @@ src/
 ├── data/
 │   ├── koreanHolidays.js            # 한국 공휴일 데이터
 │   ├── petCareDefaults.js           # 펫 케어 기본값/스타일
-│   └── workDefaults.js              # 업무 카테고리 스타일
+│   ├── workDefaults.js              # 업무 카테고리 스타일
+│   └── childcareDefaults.js         # 육아 카테고리 스타일/월령 데이터
 ├── services/
 │   ├── firebase.js                  # Firebase 초기화
 │   ├── helperProfile.js             # 도우미 프로필 CRUD
@@ -122,4 +125,34 @@ src/
     ├── PrivacyPage.jsx
     ├── FaqPage.jsx
     └── blog/                        # 블로그 글
+
+docs/
+├── README.md                        # docs 폴더 사용법 안내
+├── design/
+│   ├── design-tokens.md             # 색상, 간격, 폰트 규칙
+│   └── ui-patterns.md               # 반복되는 UI 패턴 정리
+├── log/
+│   └── changelog.md                 # 주요 변경사항 기록
+├── plan/                            # 기획 (인간용)
+│   ├── feature-list.md              # 기능 목록
+│   ├── ideas-backlog.md             # 아이디어 백로그
+│   ├── roadmap.md                   # 로드맵
+│   ├── PLAN_DEPLOYMENT_CHECKLIST_v1.0.md  # 배포 체크리스트
+│   ├── PLAN_IMPROVEMENT_IDEAS_v1.1.md     # 개선 아이디어
+│   ├── PLAN_TODO_v1.0.md                  # TODO
+│   ├── 버스.md                      # 버스 관련 메모
+│   ├── helper/                      # 도우미별 기획서
+│   │   ├── PLAN_CHILDCARE_SCHEDULE_HELPER_v1.0.md
+│   │   ├── PLAN_DIET_SCHEDULE_HELPER_v1.0.md
+│   │   ├── PLAN_GAME_SCHEDULE_HELPER_v1.0.md
+│   │   ├── PLAN_MAJOR_EVENTS_SCHEDULE_HELPER_v1.0.md
+│   │   ├── PLAN_PET_CARE_SCHEDULE_HELPER_v1.0.md
+│   │   ├── PLAN_SPORTS_SCHEDULE_HELPER_v1.0.md
+│   │   └── PLAN_WORK_SCHEDULE_HELPER_v1.0.md
+│   └── persona/
+│       └── PLAN_AI_PERSONA_FEATURE_v1.0.md
+└── prompt/                                  # 구현 프롬프트 (AI용)
+    ├── MASTER_GUIDE_v1.0.md               # 마스터 가이드
+    ├── DEVELOPMENT_WORKFLOW_v1.0.md        # 개발 워크플로우
+    └── SCHEDULE_HELPER_DEV_GUIDE_v2.0.md  # 도우미 개발 가이드
 ```

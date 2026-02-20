@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import { BarChart3, LogOut, X, Moon, Sun, BookOpen, MessageSquare, CalendarCheck, Bell, Flag, PawPrint, Briefcase } from 'lucide-react'
+import { BarChart3, LogOut, X, Moon, Sun, BookOpen, MessageSquare, CalendarCheck, Bell, Flag, PawPrint, Briefcase, Baby } from 'lucide-react'
 import { useAuth } from './hooks/useAuth'
 import { useDarkMode } from './hooks/useDarkMode'
 import { useLanguage } from './hooks/useLanguage'
@@ -12,6 +12,7 @@ import ChatInterface from './components/ChatInterface'
 import DailyScheduleView from './components/DailyScheduleView'
 import MajorEventsView from './components/MajorEventsView'
 import WorkScheduleView from './components/WorkScheduleView'
+import ChildcareScheduleView from './components/ChildcareScheduleView'
 import CalendarView from './components/CalendarView'
 import WeeklyReport from './components/WeeklyReport'
 import NotificationSettings from './components/NotificationSettings'
@@ -256,6 +257,17 @@ function MainApp() {
               <Briefcase size={13} />
               {t('workScheduleMode')}
             </button>
+            <button
+              onClick={() => setChatMode('childcare')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors min-w-[64px] justify-center ${
+                chatMode === 'childcare'
+                  ? 'bg-pink-500 text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              <Baby size={13} />
+              {t('childcareMode')}
+            </button>
           </div>
 
           {/* Content Area */}
@@ -268,6 +280,8 @@ function MainApp() {
               <MajorEventsView userId={user.uid} onEventCreated={handleEventCreated} />
             ) : chatMode === 'work' ? (
               <WorkScheduleView userId={user.uid} onEventCreated={handleEventCreated} />
+            ) : chatMode === 'childcare' ? (
+              <ChildcareScheduleView userId={user.uid} onEventCreated={handleEventCreated} />
             ) : (
               <DailyScheduleView key="petcare" userId={user.uid} onEventCreated={handleEventCreated} petCareMode />
             )}

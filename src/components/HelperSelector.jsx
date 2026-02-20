@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Sparkles, Sun, Flag, PawPrint, Briefcase } from 'lucide-react'
+import { Sparkles, Sun, Flag, PawPrint, Briefcase, Baby } from 'lucide-react'
 import { useLanguage } from '../hooks/useLanguage'
 
 export default function HelperSelector({ onSelectHelper, disabled }) {
@@ -65,6 +65,13 @@ export default function HelperSelector({ onSelectHelper, disabled }) {
           >
             <Briefcase size={14} className="text-indigo-500" />
             {t('helperWork')}
+          </button>
+          <button
+            onClick={() => handleSelect('childcare')}
+            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            <Baby size={14} className="text-pink-500" />
+            {t('helperChildcare')}
           </button>
         </div>
       )}

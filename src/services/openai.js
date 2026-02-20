@@ -592,6 +592,124 @@ export async function generateWorkSchedule(profile, tasks) {
 }
 
 /**
+ * 육아 스케줄 생성 - GPT-4o-mini로 월령 기반 하루 육아 일정 생성
+ * @param {object} childInfo - { childName, childBirthdate, childGender, ageMonths, ageGroupLabel, feedingNote, napNote }
+ * @returns {object} { action: "childcare_batch", events: [...] }
+ */
+export async function generateChildcareSchedule(childInfo) {
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+
+  const genderKo = childInfo.childGender === 'boy' ? '남아' : '여아'
+
+  const userInfo = `
+아이 이름: ${childInfo.childName}
+성별: ${genderKo}
+월령: ${childInfo.ageMonths}개월 (${childInfo.ageGroupLabel})
+수유/식사: ${childInfo.feedingNote}
+수면: ${childInfo.napNote}
+보호자 기상: ${childInfo.wakeUp || '07:00'}
+오늘 날짜: ${today}`.trim()
+
+  const body = {
+    model: 'gpt-4o-mini',
+    messages: [
+      {
+        role: 'system',
+        content: `너는 육아 스케줄 전문가야.
+아이의 월령과 발달 단계를 바탕으로 하루 육아 스케줄을 JSON으로 생성해.
+
+규칙:
+- 아이 이름을 title에 포함해 (예: "하은이 아침 수유")
+- 월령에 맞는 수유/식사 횟수와 간격을 지켜
+- 낮잠 횟수와 시간을 월령에 맞춰 배치
+- 보호자 기상 시간을 기준으로 시간 배분
+- 각 항목에 예상 소요 시간(duration, 분 단위) 포함
+- category는 "육아"로 통일
+- careType은 반드시 다음 중 하나: feeding, sleep, play, bath, diaper, outing, hospital, development
+
+월령별 가이드:
+- 0~2개월(신생아): 2~3시간 간격 수유(8~12회), 16~18시간 수면, 기저귀 교체 자주
+- 3~5개월(초기 영아): 3~4시간 수유, 낮잠 3회(각 30~90분), 놀이 짧게
+- 6~8개월(이유식 시작): 이유식 1~2회 + 수유 4~5회, 낮잠 2회, 놀이 시간 증가
+- 9~11개월(이유식 중기): 이유식 3회 + 수유 2~3회, 낮잠 2회, 활발한 놀이
+- 12~17개월(돌 전후): 유아식 전환, 낮잠 1~2회, 걷기 연습
+- 18~24개월(걸음마기): 유아식 3끼 + 간식 2회, 낮잠 1회, 배변훈련 시작
+- 25~36개월(유아기): 성인 유사 식사, 낮잠 0~1회, 창의 놀이
+
+활동 배치 규칙:
+- 기상 후: 기저귀 교체 → 수유/식사 → 놀이
+- 놀이 후: 낮잠 → 기저귀 교체 → 수유/식사 반복
+- 저녁: 목욕(1회) → 마지막 수유 → 취침
+- 활동 사이 5~10분 간격 유지
+- 절대 시간 겹침 금지
+- 실제 활동만 이벤트로 생성 (자유 시간은 이벤트로 만들지 않음)
+
+모든 제목은 한국어로 작성
+duration은 분 단위
+
+응답 형식 (JSON만 반환):
+{
+  "action": "childcare_batch",
+  "events": [
+    { "title": "하은이 아침 수유", "time": "07:00", "duration": 20, "category": "육아", "careType": "feeding" }
+  ]
+}`,
+      },
+      {
+        role: 'user',
+        content: userInfo,
+      },
+    ],
+    temperature: 0.5,
+  }
+
+  let data
+
+  if (isDev) {
+    const response = await fetch('/api/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify(body),
+    })
+    data = await response.json()
+  } else {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    data = await response.json()
+  }
+
+  if (data.error) {
+    throw new Error(data.error.message || 'OpenAI API 호출 실패')
+  }
+
+  const result = data.choices[0].message.content
+  const jsonMatch = result.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) throw new Error('GPT 응답 파싱 실패')
+
+  const parsed = JSON.parse(jsonMatch[0])
+
+  if (!parsed.events || !Array.isArray(parsed.events) || parsed.events.length === 0) {
+    throw new Error('생성된 스케줄이 비어있습니다')
+  }
+
+  // 시간 겹침 후처리 보정
+  const fixedEvents = fixOverlappingEvents(parsed.events)
+
+  return {
+    action: 'childcare_batch',
+    date: today,
+    events: fixedEvents,
+  }
+}
+
+/**
  * 이벤트 시간 겹침 자동 보정
  * - 시간순 정렬 후 겹치는 이벤트를 뒤로 밀어 10분 버퍼 확보
  * - "수면" 이벤트는 맨 마지막에 고정

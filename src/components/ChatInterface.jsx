@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Send, Calendar, Clock, MapPin, Check, X, Loader2, ArrowRight, Trash2, Cake, Heart, PartyPopper } from 'lucide-react'
-import { parseSchedule, generateDailySchedule, generatePetCareSchedule, generateWorkSchedule } from '../services/openai'
+import { parseSchedule, generateDailySchedule, generatePetCareSchedule, generateWorkSchedule, generateChildcareSchedule } from '../services/openai'
 import { createEvent, getEvents, moveEvent, updateEvent, deleteEvent, deleteAllEvents, addBatchEvents } from '../services/schedule'
 import { saveHelperProfile, getHelperProfile } from '../services/helperProfile'
 import {
@@ -9,10 +9,13 @@ import {
   parsePetType, parsePetName, parsePetAge, parsePetSize, parsePetIndoor,
   isProfileEditTrigger,
   isWorkHelperTrigger, parseWorkType, parseWorkHours, parseFocusPeak, parseWorkTasks,
+  isChildcareHelperTrigger, parseChildName, parseChildBirthdate, parseChildGender,
 } from '../utils/helperParser'
 import BatchConfirmCard from './BatchConfirmCard'
 import PetCareCard from './PetCareCard'
 import WorkScheduleCard from './WorkScheduleCard'
+import ChildcareCard from './ChildcareCard'
+import { calculateAgeMonths, getChildAgeGroup, AGE_GROUPS } from '../data/childcareDefaults'
 import HelperSelector from './HelperSelector'
 import { useLanguage } from '../hooks/useLanguage'
 
@@ -53,9 +56,18 @@ const WORK_ONBOARDING_STEPS = [
   { key: 'worksWeekends',  askKey: 'helperWorkAskWeekend',  parser: parsePetIndoor },
 ]
 
+// 육아 도우미 프로필 수집 스텝
+const CHILDCARE_ONBOARDING_STEPS = [
+  { key: 'childName',      askKey: 'childcareAskName',      parser: parseChildName },
+  { key: 'childBirthdate', askKey: 'childcareAskBirthdate', parser: parseChildBirthdate },
+  { key: 'childGender',    askKey: 'childcareAskGender',    parser: parseChildGender },
+  { key: 'wakeUp',         askKey: 'childcareAskWakeUp',    parser: parseTimeInput },
+]
+
 function getOnboardingSteps(type) {
   if (type === 'petcare') return PET_ONBOARDING_STEPS
   if (type === 'work') return WORK_ONBOARDING_STEPS
+  if (type === 'childcare') return CHILDCARE_ONBOARDING_STEPS
   return ONBOARDING_STEPS
 }
 
@@ -94,7 +106,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
   const startHelperOnboarding = (type) => {
     const steps = getOnboardingSteps(type)
     setHelperState({ type, step: 0, answers: {} })
-    const startMsg = type === 'petcare' ? t('petCareStart') : type === 'work' ? t('helperWorkStart') : t('helperStart')
+    const startMsg = type === 'petcare' ? t('petCareStart') : type === 'work' ? t('helperWorkStart') : type === 'childcare' ? t('childcareStart') : t('helperStart')
     setMessages((prev) => [
       ...prev,
       { role: 'assistant', content: `${startMsg}\n\n${t(steps[0].askKey)}\n${t('helperCancelHint')}` },
@@ -103,11 +115,25 @@ export default function ChatInterface({ userId, onEventCreated }) {
 
   // === Helper: 시작 (프로필 확인 → 온보딩 or 일수 선택/바로 생성) ===
   const handleStartHelper = async (type) => {
-    if (type !== 'daily' && type !== 'petcare' && type !== 'work') return
+    if (type !== 'daily' && type !== 'petcare' && type !== 'work' && type !== 'childcare') return
 
     setLoading(true)
     try {
-      if (type === 'work') {
+      if (type === 'childcare') {
+        const existingProfile = await getHelperProfile(userId, 'H06')
+        if (existingProfile) {
+          const ageMonths = calculateAgeMonths(existingProfile.childBirthdate)
+          const ageGroupKey = getChildAgeGroup(ageMonths)
+          const ageGroup = AGE_GROUPS[ageGroupKey]
+          setPendingProfile({ _type: 'childcare', ...existingProfile })
+          setMessages((prev) => [
+            ...prev,
+            { role: 'assistant', content: `${t('childcareProfileFound')} ${existingProfile.childName} (${ageMonths}${t('childcareMonthUnit')}, ${ageGroup?.label})\n${t('helperAskDays')}`, action: 'select_days' },
+          ])
+        } else {
+          startHelperOnboarding(type)
+        }
+      } else if (type === 'work') {
         const existingProfile = await getHelperProfile(userId, 'H04')
         if (existingProfile) {
           setPendingProfile({ _type: 'work', ...existingProfile })
@@ -157,16 +183,20 @@ export default function ChatInterface({ userId, onEventCreated }) {
     const profile = pendingProfile
     const isPetCare = profile._type === 'petcare'
     const isWork = profile._type === 'work'
+    const isChildcare = profile._type === 'childcare'
     setPendingProfile(null)
     setMessages((prev) => [
       ...prev.map((m) => m.action === 'select_days' ? { ...m, answered: true } : m),
       { role: 'user', content: `${days}${t('helperDayUnit')}` },
-      { role: 'assistant', content: isWork ? t('helperWorkGenerating') : t('helperGenerating') },
+      { role: 'assistant', content: isWork ? t('helperWorkGenerating') : isChildcare ? t('childcareGenerating') : t('helperGenerating') },
     ])
     setLoading(true)
     if (isWork) {
       const { _type, _tasks, ...workProfile } = profile
       await generateAndShowWorkBatch(workProfile, _tasks, days)
+    } else if (isChildcare) {
+      const { _type, ...childInfo } = profile
+      await generateAndShowChildcareBatch(childInfo, days)
     } else if (isPetCare) {
       const { _type, ...petInfo } = profile
       await generateAndShowPetCareBatch(petInfo, days)
@@ -192,7 +222,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
     // 취소 체크
     if (isHelperCancel(text)) {
       setHelperState(null)
-      const cancelMsg = helperState.type === 'petcare' ? t('petCareCancelled') : helperState.type === 'work' ? t('helperWorkCancelled') : t('helperCancelled')
+      const cancelMsg = helperState.type === 'petcare' ? t('petCareCancelled') : helperState.type === 'work' ? t('helperWorkCancelled') : helperState.type === 'childcare' ? t('childcareCancelled') : t('helperCancelled')
       setMessages((prev) => [
         ...prev,
         { role: 'assistant', content: cancelMsg },
@@ -334,6 +364,15 @@ export default function ChatInterface({ userId, onEventCreated }) {
     if (nextStep < steps.length) {
       setHelperState({ ...helperState, step: nextStep, answers: newAnswers })
       setMessages(prev => [...prev, { role: 'assistant', content: `${t(steps[nextStep].askKey)}\n${t('helperCancelHint')}` }])
+      setLoading(false)
+    } else if (type === 'childcare') {
+      // 육아 도우미 온보딩 완료: 프로필 저장 + 일수 선택
+      setHelperState(null)
+      try {
+        await saveHelperProfile(userId, 'H06', newAnswers)
+      } catch { /* 데모 모드 */ }
+      setPendingProfile({ _type: 'childcare', ...newAnswers })
+      setMessages(prev => [...prev, { role: 'assistant', content: t('helperAskDays'), action: 'select_days' }])
       setLoading(false)
     } else if (type === 'work') {
       // 업무 도우미 온보딩 완료: 프로필 저장 + 태스크 입력 요청
@@ -477,6 +516,100 @@ export default function ChatInterface({ userId, onEventCreated }) {
     } finally {
       setLoading(false)
     }
+  }
+
+  // === Childcare: GPT 육아 스케줄 생성 + 카드 표시 (멀티데이) ===
+  const generateAndShowChildcareBatch = async (childInfo, days = 1) => {
+    try {
+      const ageMonths = calculateAgeMonths(childInfo.childBirthdate)
+      const ageGroupKey = getChildAgeGroup(ageMonths)
+      const ageGroup = AGE_GROUPS[ageGroupKey]
+      const enrichedInfo = {
+        ...childInfo,
+        ageMonths,
+        ageGroupLabel: ageGroup?.label || '유아기',
+        feedingNote: ageGroup?.feedingNote || '유아식 3끼',
+        napNote: ageGroup?.napNote || '낮잠 0~1회',
+      }
+      const result = await generateChildcareSchedule(enrichedInfo)
+      const today = new Date()
+      const childcareDays = []
+      for (let i = 0; i < days; i++) {
+        const d = new Date(today)
+        d.setDate(d.getDate() + i)
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+        childcareDays.push({ date: dateStr, events: result.events.map((e) => ({ ...e })) })
+      }
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: t('childcareScheduleGenerated'),
+          action: 'childcare_batch',
+          childcareEvents: childcareDays[0].events,
+          childcareDate: childcareDays[0].date,
+          childcareDays,
+          childInfo: enrichedInfo,
+          confirmed: false,
+          cancelled: false,
+        },
+      ])
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: t('childcareError') },
+      ])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // === Childcare: 배치 전체 등록 (멀티데이) ===
+  const handleChildcareConfirm = async (msgIndex) => {
+    const msg = messages[msgIndex]
+    if (!msg.childcareEvents || msg.confirmed) return
+
+    try {
+      if (msg.childcareDays && msg.childcareDays.length > 1) {
+        for (const day of msg.childcareDays) {
+          await addBatchEvents(userId, day.events, day.date, 'H06')
+        }
+      } else {
+        await addBatchEvents(userId, msg.childcareEvents, msg.childcareDate, 'H06')
+      }
+      setMessages((prev) =>
+        prev.map((m, i) =>
+          i === msgIndex ? { ...m, confirmed: true } : m
+        )
+      )
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: t('childcareBatchSaved') },
+      ])
+      onEventCreated?.()
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: t('chatProcessError') },
+      ])
+    }
+  }
+
+  // === Childcare: 개별 항목 제거 ===
+  const handleChildcareRemoveItem = (msgIndex, eventIdx) => {
+    setMessages((prev) =>
+      prev.map((m, i) => {
+        if (i !== msgIndex || !m.childcareEvents) return m
+        const newEvents = m.childcareEvents.filter((_, ei) => ei !== eventIdx)
+        const newDays = m.childcareDays
+          ? m.childcareDays.map((day) => ({
+              ...day,
+              events: day.events.filter((_, ei) => ei !== eventIdx),
+            })).filter((day) => day.events.length > 0)
+          : undefined
+        return { ...m, childcareEvents: newEvents, childcareDays: newDays }
+      })
+    )
   }
 
   // === Work: 배치 전체 등록 (멀티데이) ===
@@ -710,7 +843,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
       const profileEdit = isProfileEditTrigger(currentInput)
       if (profileEdit) {
         const type = profileEdit === 'any' ? 'daily' : profileEdit
-        const editMsg = type === 'petcare' ? '펫 케어 프로필을 다시 설정합니다.' : type === 'work' ? '업무 프로필을 다시 설정합니다.' : '일상 프로필을 다시 설정합니다.'
+        const editMsg = type === 'petcare' ? '펫 케어 프로필을 다시 설정합니다.' : type === 'work' ? '업무 프로필을 다시 설정합니다.' : type === 'childcare' ? '육아 프로필을 다시 설정합니다.' : '일상 프로필을 다시 설정합니다.'
         setMessages(prev => [
           ...prev,
           { role: 'assistant', content: editMsg },
@@ -722,6 +855,10 @@ export default function ChatInterface({ userId, onEventCreated }) {
       // 3. 도우미 트리거 감지
       if (isPetCareHelperTrigger(currentInput)) {
         await handleStartHelper('petcare')
+        return
+      }
+      if (isChildcareHelperTrigger(currentInput)) {
+        await handleStartHelper('childcare')
         return
       }
       if (isWorkHelperTrigger(currentInput)) {
@@ -1106,6 +1243,20 @@ export default function ChatInterface({ userId, onEventCreated }) {
                 />
               )}
 
+              {/* 육아 스케줄 카드 — childcare_batch */}
+              {msg.action === 'childcare_batch' && (
+                <ChildcareCard
+                  childInfo={msg.childInfo}
+                  events={msg.childcareEvents || []}
+                  days={msg.childcareDays || []}
+                  onConfirmAll={() => handleChildcareConfirm(i)}
+                  onRemoveItem={(eventIdx) => handleChildcareRemoveItem(i, eventIdx)}
+                  onCancel={() => handleCancel(i)}
+                  confirmed={msg.confirmed}
+                  cancelled={msg.cancelled}
+                />
+              )}
+
               {/* 일정 이동 카드 — move */}
               {msg.action === 'move' && !msg.confirmed && !msg.cancelled && (
                 <div className="mt-2 bg-white dark:bg-gray-800 border border-orange-300 dark:border-orange-600 rounded-xl p-3 space-y-1.5">
@@ -1241,10 +1392,10 @@ export default function ChatInterface({ userId, onEventCreated }) {
                 )
               })()}
 
-              {msg.confirmed && msg.action !== 'create_batch' && msg.action !== 'petcare_batch' && msg.action !== 'work_batch' && (
+              {msg.confirmed && msg.action !== 'create_batch' && msg.action !== 'petcare_batch' && msg.action !== 'work_batch' && msg.action !== 'childcare_batch' && (
                 <p className="mt-1 text-xs text-green-600 dark:text-green-400">{t('savedComplete')}</p>
               )}
-              {msg.cancelled && msg.action !== 'create_batch' && msg.action !== 'petcare_batch' && msg.action !== 'work_batch' && (
+              {msg.cancelled && msg.action !== 'create_batch' && msg.action !== 'petcare_batch' && msg.action !== 'work_batch' && msg.action !== 'childcare_batch' && (
                 <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">{t('cancelled')}</p>
               )}
             </div>

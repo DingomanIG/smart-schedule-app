@@ -459,6 +459,115 @@ export function parseWorkTasks(text) {
 }
 
 /**
+ * 육아 도우미 트리거 감지
+ * @param {string} text
+ * @returns {boolean}
+ */
+export function isChildcareHelperTrigger(text) {
+  if (!text || typeof text !== 'string') return false
+  const t = text.trim().toLowerCase()
+
+  // 기존 일정 관리 키워드가 포함되면 도우미 트리거 아님
+  const actionKeywords = /삭제|취소|지워|지우|옮겨|옮기|이동|변경|바꿔|바꾸|수정|업데이트|빼줘|없애/
+  if (actionKeywords.test(t)) return false
+
+  // 다른 도우미 키워드 제외
+  if (/일상|하루|펫|팻|강아지|고양이|반려|업무|태스크/.test(t)) return false
+
+  const childcareWords = '육아|아기|아이|신생아|영아|유아|돌봄|수유|이유식|기저귀|낮잠'
+  const childcarePattern = new RegExp(`(?:${childcareWords})`)
+
+  const patterns = [
+    new RegExp(`(?:${childcareWords})\\s*스[케캐][줄쥴]`),
+    new RegExp(`(?:${childcareWords})\\s*(?:일정|루틴|관리)`),
+    new RegExp(`(?:${childcareWords})\\s*도우미`),
+    /childcare\s*schedule/i,
+    /baby\s*schedule/i,
+    /baby\s*routine/i,
+  ]
+
+  if (patterns.some(p => p.test(t))) return true
+
+  // 동사 + 키워드 조합
+  const verbs = /(짜줘|짜|만들어줘|만들어|만들|생성|작성|세워|잡아|추천|도우미|helper|plan)/i
+  if (verbs.test(t) && childcarePattern.test(t)) return true
+
+  return false
+}
+
+/**
+ * 아이 이름 파싱
+ * @param {string} text
+ * @returns {string|null}
+ */
+export function parseChildName(text) {
+  if (!text || typeof text !== 'string') return null
+  const t = text.trim()
+  if (t.length === 0 || t.length > 20) return null
+  return t
+}
+
+/**
+ * 아이 생년월일 파싱
+ * 지원: "2024-03-15", "2024.3.15", "2024년 3월 15일", "8개월"
+ * @param {string} text
+ * @returns {string|null} "YYYY-MM-DD" 형식
+ */
+export function parseChildBirthdate(text) {
+  if (!text || typeof text !== 'string') return null
+  const t = text.trim()
+
+  // YYYY-MM-DD, YYYY.M.D, YYYY/M/D
+  const fullMatch = t.match(/(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/)
+  if (fullMatch) {
+    const y = parseInt(fullMatch[1])
+    const m = parseInt(fullMatch[2])
+    const d = parseInt(fullMatch[3])
+    if (y >= 2020 && y <= 2030 && m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+    }
+  }
+
+  // YYYY년 M월 D일
+  const koMatch = t.match(/(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/)
+  if (koMatch) {
+    const y = parseInt(koMatch[1])
+    const m = parseInt(koMatch[2])
+    const d = parseInt(koMatch[3])
+    if (y >= 2020 && y <= 2030 && m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+    }
+  }
+
+  // X개월 (월령 → 역산하여 대략적 생년월일)
+  const monthMatch = t.match(/(\d+)\s*(?:개월|month)/i)
+  if (monthMatch) {
+    const months = parseInt(monthMatch[1])
+    if (months >= 0 && months <= 36) {
+      const now = new Date()
+      now.setMonth(now.getMonth() - months)
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    }
+  }
+
+  return null
+}
+
+/**
+ * 아이 성별 파싱
+ * @param {string} text
+ * @returns {string|null} 'boy' | 'girl' | null
+ */
+export function parseChildGender(text) {
+  if (!text || typeof text !== 'string') return null
+  const t = text.trim().toLowerCase()
+
+  if (/남|남아|아들|boy|male|1/.test(t)) return 'boy'
+  if (/여|여아|딸|girl|female|2/.test(t)) return 'girl'
+  return null
+}
+
+/**
  * 도우미 취소 감지
  * @param {string} text
  * @returns {boolean}
@@ -485,6 +594,7 @@ export function isProfileEditTrigger(text) {
 
   if (/펫|팻|반려견|반려묘|반려동물|애완동물|애완|강아지|멍뭉이|고양이|고냥이|냥이|pet/.test(t)) return 'petcare'
   if (/업무|work|태스크|task/.test(t)) return 'work'
+  if (/육아|아기|아이|신생아|영아|유아|수유|이유식|childcare|baby/.test(t)) return 'childcare'
   if (/일상|일정|하루|daily|routine/.test(t)) return 'daily'
 
   // 키워드 없으면 현재 맥락에 따라 판단하기 위해 'any' 반환

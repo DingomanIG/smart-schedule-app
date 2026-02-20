@@ -8,9 +8,9 @@
 docs/
 ├── README.md                    # 이 파일
 ├── plan/                        # 기획 (인간용)
-│   ├── feature-list.md          # 전체 기능 목록 + 스코프 락 표시
-│   ├── roadmap.md               # 버전별 로드맵 (v1, v2...)
-│   ├── ideas-backlog.md         # 나중에 할 아이디어 메모장
+│   ├── feature-list.md          # 기능 체크리스트 + 버전 로드맵
+│   ├── PLAN_IMPROVEMENT_IDEAS_v1.1.md  # 아이디어 상세 카탈로그 (61개)
+│   ├── PLAN_TODO_v1.0.md        # 단기 목표 + 수익 추적
 │   └── *.md                     # 개별 기능 기획서
 ├── prompt/                      # 구현 프롬프트 (AI용)
 │   ├── component-base.md        # 컴포넌트 공통 규칙 프롬프트

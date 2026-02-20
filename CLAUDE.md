@@ -135,12 +135,11 @@ docs/
 ├── log/
 │   └── changelog.md                 # 주요 변경사항 기록
 ├── plan/                            # 기획 (인간용)
-│   ├── feature-list.md              # 기능 목록
-│   ├── ideas-backlog.md             # 아이디어 백로그
-│   ├── roadmap.md                   # 로드맵
+│   ├── feature-list.md              # 기능 체크리스트 + 버전 로드맵
+│   ├── PLAN_IMPROVEMENT_IDEAS_v1.1.md     # 아이디어 상세 카탈로그
+│   ├── PLAN_TODO_v1.0.md                  # 단기 목표 + 수익 추적
+│   ├── cost-revenue.md              # 비용/수익 예상
 │   ├── PLAN_DEPLOYMENT_CHECKLIST_v1.0.md  # 배포 체크리스트
-│   ├── PLAN_IMPROVEMENT_IDEAS_v1.1.md     # 개선 아이디어
-│   ├── PLAN_TODO_v1.0.md                  # TODO
 │   ├── 버스.md                      # 버스 관련 메모
 │   ├── helper/                      # 도우미별 기획서
 │   │   ├── PLAN_CHILDCARE_SCHEDULE_HELPER_v1.0.md
@@ -153,7 +152,5 @@ docs/
 │   └── persona/
 │       └── PLAN_AI_PERSONA_FEATURE_v1.0.md
 └── prompt/                                  # 구현 프롬프트 (AI용)
-    ├── MASTER_GUIDE_v1.0.md               # 마스터 가이드
-    ├── DEVELOPMENT_WORKFLOW_v1.0.md        # 개발 워크플로우
     └── SCHEDULE_HELPER_DEV_GUIDE_v2.0.md  # 도우미 개발 가이드
 ```

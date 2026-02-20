@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node tests/run.js",
+    "test:date": "node tests/run.js --date",
+    "test:gpt": "node tests/run.js --gpt"
   },
   "dependencies": {
     "date-fns": "^3.6.0",

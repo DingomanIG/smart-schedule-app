@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Check, X, Sparkles, Zap, TrendingUp, DollarSign, Shield, Clock } from 'lucide-react'
+import SEO from '../components/SEO'
 
 export default function ComparisonPage() {
   const features = [
@@ -79,6 +80,7 @@ export default function ComparisonPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <SEO title="기능 비교" description="스마트 스케줄과 구글 캘린더, 수동 관리 방식의 기능을 상세 비교합니다." path="/comparison" />
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-6xl mx-auto px-4 py-4">

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Home, MessageCircle, Calendar, BarChart3, Check } from 'lucide-react'
+import SEO from '../components/SEO'
 
 export default function GuidePage() {
   const steps = [
@@ -27,6 +28,7 @@ export default function GuidePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEO title="사용 가이드" description="스마트 스케줄 사용법을 단계별로 안내합니다. 회원가입부터 AI 일정 등록까지 쉽게 따라하세요." path="/guide" />
       {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-4">

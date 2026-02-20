@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Brain, Sparkles, Zap, Target, Clock, Calendar, CheckCircle, ArrowRight } from 'lucide-react'
+import SEO from '../components/SEO'
 
 export default function AIGuidePage() {
   const features = [
@@ -86,6 +87,7 @@ export default function AIGuidePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <SEO title="AI 스케줄링 가이드" description="AI 자연어 일정 등록의 모든 것. 똑똑한 일정 관리를 위한 완벽 가이드." path="/ai-guide" />
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-4xl mx-auto px-4 py-4">

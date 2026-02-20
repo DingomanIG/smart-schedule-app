@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Star, ThumbsUp, Users, TrendingUp, Quote } from 'lucide-react'
+import SEO from '../components/SEO'
 
 export default function ReviewsPage() {
   const reviews = [
@@ -73,6 +74,7 @@ export default function ReviewsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <SEO title="사용 후기" description="실제 사용자들의 스마트 스케줄 후기와 성공 사례를 확인하세요." path="/reviews" />
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-6xl mx-auto px-4 py-4">

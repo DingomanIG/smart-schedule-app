@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, MessageCircle, BarChart3, Clock, ArrowRight } from 'lucide-react';
+import SEO from '../../components/SEO';
 
 const IntroductionBlog = () => {
   useEffect(() => {
@@ -9,6 +10,7 @@ const IntroductionBlog = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors">
+      <SEO title="AI 스마트 스케줄 소개" description="AI 기반 스마트 스케줄 관리 서비스를 소개합니다. 자연어로 일정을 등록하는 새로운 방법을 알아보세요." path="/blog/introduction" />
       {/* Header */}
       <header className="border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-4xl mx-auto px-4 py-6">

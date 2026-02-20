@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Briefcase, GraduationCap, Users, Coffee } from 'lucide-react';
+import SEO from '../../components/SEO';
 
 const UseCasesBlog = () => {
   useEffect(() => {
@@ -9,6 +10,7 @@ const UseCasesBlog = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors">
+      <SEO title="활용 사례" description="직장인, 학생, 프리랜서 등 다양한 사용자의 스마트 스케줄 활용 사례를 확인하세요." path="/blog/use-cases" />
       {/* Header */}
       <header className="border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-4xl mx-auto px-4 py-6">

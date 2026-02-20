@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ArrowLeft, PlayCircle, CheckCircle, MessageCircle, Calendar, BarChart3 } from 'lucide-react'
+import SEO from '../components/SEO'
 
 export default function TutorialPage() {
   const steps = [
@@ -62,6 +63,7 @@ export default function TutorialPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <SEO title="튜토리얼" description="스마트 스케줄 처음 사용자를 위한 단계별 튜토리얼. 채팅으로 일정 등록하는 방법을 배워보세요." path="/tutorial" />
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-4xl mx-auto px-4 py-4">

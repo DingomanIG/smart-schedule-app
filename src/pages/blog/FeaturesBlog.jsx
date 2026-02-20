@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageCircle, Calendar, BarChart3, Zap, Shield, Smartphone } from 'lucide-react';
+import SEO from '../../components/SEO';
 
 const FeaturesBlog = () => {
   useEffect(() => {
@@ -9,6 +10,7 @@ const FeaturesBlog = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors">
+      <SEO title="주요 기능 안내" description="스마트 스케줄의 AI 자연어 파싱, 캘린더 뷰, 주간 리포트 등 핵심 기능을 상세히 소개합니다." path="/blog/features" />
       {/* Header */}
       <header className="border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-4xl mx-auto px-4 py-6">

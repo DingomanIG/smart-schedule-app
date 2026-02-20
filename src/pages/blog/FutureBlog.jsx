@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Rocket, Sparkles, Globe, Zap } from 'lucide-react';
 import SEO from '../../components/SEO';
+import AdSenseAd from '../../components/AdSenseAd';
 
 const FutureBlog = () => {
   useEffect(() => {
@@ -10,7 +11,7 @@ const FutureBlog = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors">
-      <SEO title="미래 업데이트 계획" description="스마트 스케줄의 향후 업데이트 로드맵과 새로운 기능 계획을 미리 확인하세요." path="/blog/future" />
+      <SEO title="미래 업데이트 계획" description="스마트 스케줄의 향후 업데이트 로드맵과 새로운 기능 계획을 미리 확인하세요." path="/blog/future" type="article" />
       {/* Header */}
       <header className="border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-4xl mx-auto px-4 py-6">
@@ -397,6 +398,11 @@ const FutureBlog = () => {
           </div>
         </div>
       </article>
+
+      {/* 광고 */}
+      <div className="max-w-4xl mx-auto px-4">
+        <AdSenseAd />
+      </div>
 
       {/* Footer */}
       <footer className="border-t border-gray-200 dark:border-gray-700 mt-16">

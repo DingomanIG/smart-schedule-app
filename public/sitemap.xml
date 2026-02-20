@@ -1,107 +1,128 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://smart-schedule-app.vercel.app/</loc>
+    <loc>https://yschedule.me/</loc>
+    <lastmod>2026-02-20</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://smart-schedule-app.vercel.app/about</loc>
+    <loc>https://yschedule.me/about</loc>
+    <lastmod>2026-02-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://smart-schedule-app.vercel.app/privacy</loc>
+    <loc>https://yschedule.me/privacy</loc>
+    <lastmod>2026-02-20</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://smart-schedule-app.vercel.app/terms</loc>
+    <loc>https://yschedule.me/terms</loc>
+    <lastmod>2026-02-16</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://smart-schedule-app.vercel.app/contact</loc>
+    <loc>https://yschedule.me/contact</loc>
+    <lastmod>2026-02-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://smart-schedule-app.vercel.app/faq</loc>
+    <loc>https://yschedule.me/faq</loc>
+    <lastmod>2026-02-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://smart-schedule-app.vercel.app/guide</loc>
+    <loc>https://yschedule.me/guide</loc>
+    <lastmod>2026-02-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://smart-schedule-app.vercel.app/pricing</loc>
+    <loc>https://yschedule.me/pricing</loc>
+    <lastmod>2026-02-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://smart-schedule-app.vercel.app/blog</loc>
+    <loc>https://yschedule.me/blog</loc>
+    <lastmod>2026-02-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://smart-schedule-app.vercel.app/tutorial</loc>
+    <loc>https://yschedule.me/tutorial</loc>
+    <lastmod>2026-02-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://smart-schedule-app.vercel.app/reviews</loc>
+    <loc>https://yschedule.me/reviews</loc>
+    <lastmod>2026-02-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://smart-schedule-app.vercel.app/ai-guide</loc>
+    <loc>https://yschedule.me/ai-guide</loc>
+    <lastmod>2026-02-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://smart-schedule-app.vercel.app/comparison</loc>
+    <loc>https://yschedule.me/comparison</loc>
+    <lastmod>2026-02-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://smart-schedule-app.vercel.app/blog/introduction</loc>
+    <loc>https://yschedule.me/blog/introduction</loc>
+    <lastmod>2026-02-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://smart-schedule-app.vercel.app/blog/features</loc>
+    <loc>https://yschedule.me/blog/features</loc>
+    <lastmod>2026-02-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://smart-schedule-app.vercel.app/blog/use-cases</loc>
+    <loc>https://yschedule.me/blog/use-cases</loc>
+    <lastmod>2026-02-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://smart-schedule-app.vercel.app/blog/ai-technology</loc>
+    <loc>https://yschedule.me/blog/ai-technology</loc>
+    <lastmod>2026-02-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://smart-schedule-app.vercel.app/blog/productivity</loc>
+    <loc>https://yschedule.me/blog/productivity</loc>
+    <lastmod>2026-02-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://smart-schedule-app.vercel.app/blog/comparison</loc>
+    <loc>https://yschedule.me/blog/comparison</loc>
+    <lastmod>2026-02-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://smart-schedule-app.vercel.app/blog/tips</loc>
+    <loc>https://yschedule.me/blog/tips</loc>
+    <lastmod>2026-02-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://smart-schedule-app.vercel.app/blog/future</loc>
+    <loc>https://yschedule.me/blog/future</loc>
+    <lastmod>2026-02-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>

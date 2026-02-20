@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Lightbulb, Zap, Target, Star } from 'lucide-react';
 import SEO from '../../components/SEO';
+import AdSenseAd from '../../components/AdSenseAd';
 
 const TipsBlog = () => {
   useEffect(() => {
@@ -10,7 +11,7 @@ const TipsBlog = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors">
-      <SEO title="스케줄 관리 꿀팁" description="효율적인 일정 관리를 위한 꿀팁 모음. AI 스케줄러를 200% 활용하는 방법을 알려드립니다." path="/blog/tips" />
+      <SEO title="스케줄 관리 꿀팁" description="효율적인 일정 관리를 위한 꿀팁 모음. AI 스케줄러를 200% 활용하는 방법을 알려드립니다." path="/blog/tips" type="article" />
       {/* Header */}
       <header className="border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-4xl mx-auto px-4 py-6">
@@ -410,6 +411,11 @@ const TipsBlog = () => {
           </div>
         </div>
       </article>
+
+      {/* 광고 */}
+      <div className="max-w-4xl mx-auto px-4">
+        <AdSenseAd />
+      </div>
 
       {/* Footer */}
       <footer className="border-t border-gray-200 dark:border-gray-700 mt-16">

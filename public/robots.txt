@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /api/
 
-Sitemap: https://smart-schedule-app.vercel.app/sitemap.xml
+Sitemap: https://yschedule.me/sitemap.xml

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, X } from 'lucide-react';
 import SEO from '../../components/SEO';
+import AdSenseAd from '../../components/AdSenseAd';
 
 const ComparisonBlog = () => {
   useEffect(() => {
@@ -10,7 +11,7 @@ const ComparisonBlog = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors">
-      <SEO title="앱 비교 분석" description="스마트 스케줄과 구글 캘린더, 네이버 캘린더 등 주요 일정 관리 앱을 비교 분석합니다." path="/blog/comparison" />
+      <SEO title="앱 비교 분석" description="스마트 스케줄과 구글 캘린더, 네이버 캘린더 등 주요 일정 관리 앱을 비교 분석합니다." path="/blog/comparison" type="article" />
       {/* Header */}
       <header className="border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-4xl mx-auto px-4 py-6">
@@ -380,6 +381,11 @@ const ComparisonBlog = () => {
           </div>
         </div>
       </article>
+
+      {/* 광고 */}
+      <div className="max-w-4xl mx-auto px-4">
+        <AdSenseAd />
+      </div>
 
       {/* Footer */}
       <footer className="border-t border-gray-200 dark:border-gray-700 mt-16">

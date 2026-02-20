@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Brain, Cpu, Database, Zap } from 'lucide-react';
 import SEO from '../../components/SEO';
+import AdSenseAd from '../../components/AdSenseAd';
 
 const AITechnologyBlog = () => {
   useEffect(() => {
@@ -10,7 +11,7 @@ const AITechnologyBlog = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors">
-      <SEO title="AI 기술 소개" description="스마트 스케줄에 적용된 GPT-4o 기반 자연어 처리 기술과 AI 일정 파싱 원리를 설명합니다." path="/blog/ai-technology" />
+      <SEO title="AI 기술 소개" description="스마트 스케줄에 적용된 GPT-4o 기반 자연어 처리 기술과 AI 일정 파싱 원리를 설명합니다." path="/blog/ai-technology" type="article" />
       {/* Header */}
       <header className="border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-4xl mx-auto px-4 py-6">
@@ -282,6 +283,11 @@ const AITechnologyBlog = () => {
           </div>
         </div>
       </article>
+
+      {/* 광고 */}
+      <div className="max-w-4xl mx-auto px-4">
+        <AdSenseAd />
+      </div>
 
       {/* Footer */}
       <footer className="border-t border-gray-200 dark:border-gray-700 mt-16">

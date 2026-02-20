@@ -1,0 +1,16 @@
+{
+  "name": "스마트 스케줄 - AI 일정 관리",
+  "short_name": "스마트 스케줄",
+  "description": "AI가 자연어를 분석하여 자동으로 일정을 등록해주는 스마트 스케줄 관리 서비스",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

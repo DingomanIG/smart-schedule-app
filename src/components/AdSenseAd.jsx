@@ -1,8 +1,34 @@
-export default function AdSenseAd({ slot }) {
+import { useEffect, useRef } from 'react'
+
+const CLIENT_ID = import.meta.env.VITE_ADSENSE_CLIENT_ID || 'ca-pub-7402435256033328'
+
+export default function AdSenseAd({ slot, format = 'auto', responsive = true, className = '' }) {
+  const adRef = useRef(null)
+  const pushed = useRef(false)
+
+  useEffect(() => {
+    if (pushed.current || !adRef.current) return
+    try {
+      const adsbygoogle = window.adsbygoogle || []
+      adsbygoogle.push({})
+      window.adsbygoogle = adsbygoogle
+      pushed.current = true
+    } catch (e) {
+      // 광고 로드 실패 시 무시
+    }
+  }, [])
+
   return (
-    <div className="border border-gray-300 rounded p-4 text-center bg-gray-50">
-      <p className="text-sm text-gray-500">광고 영역 ({slot})</p>
-      {/* 애드센스 승인 후 스크립트 삽입 */}
+    <div className={`ad-container my-6 ${className}`}>
+      <ins
+        ref={adRef}
+        className="adsbygoogle"
+        style={{ display: 'block' }}
+        data-ad-client={CLIENT_ID}
+        data-ad-slot={slot}
+        data-ad-format={format}
+        data-full-width-responsive={responsive ? 'true' : 'false'}
+      />
     </div>
   )
 }

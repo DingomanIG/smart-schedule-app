@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { TrendingUp, Target, Clock, CheckCircle } from 'lucide-react';
 import SEO from '../../components/SEO';
+import AdSenseAd from '../../components/AdSenseAd';
 
 const ProductivityBlog = () => {
   useEffect(() => {
@@ -10,7 +11,7 @@ const ProductivityBlog = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors">
-      <SEO title="생산성 향상 팁" description="AI 일정 관리로 생산성을 높이는 실용적인 팁과 시간 관리 노하우를 공유합니다." path="/blog/productivity" />
+      <SEO title="생산성 향상 팁" description="AI 일정 관리로 생산성을 높이는 실용적인 팁과 시간 관리 노하우를 공유합니다." path="/blog/productivity" type="article" />
       {/* Header */}
       <header className="border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-4xl mx-auto px-4 py-6">
@@ -341,6 +342,11 @@ const ProductivityBlog = () => {
           </div>
         </div>
       </article>
+
+      {/* 광고 */}
+      <div className="max-w-4xl mx-auto px-4">
+        <AdSenseAd />
+      </div>
 
       {/* Footer */}
       <footer className="border-t border-gray-200 dark:border-gray-700 mt-16">

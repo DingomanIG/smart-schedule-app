@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import SEO from '../components/SEO'
+import AdSenseAd from '../components/AdSenseAd'
 
 export default function AboutPage() {
   return (
@@ -48,12 +49,15 @@ export default function AboutPage() {
             사용합니다. AI 일정 파싱에는 OpenAI의 GPT-4o-mini 모델을 활용하고 있습니다.
           </p>
 
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">문의</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">운영</h2>
           <p>
+            스마트 스케줄은 개인 개발자가 운영하는 서비스입니다.
             서비스 이용 중 문의사항이 있으시면 <Link to="/contact" className="text-blue-600 dark:text-blue-400 hover:underline">문의하기</Link> 페이지를
             통해 연락해 주세요. 빠른 시일 내에 답변 드리겠습니다.
           </p>
         </div>
+
+        <AdSenseAd />
       </div>
     </div>
   )

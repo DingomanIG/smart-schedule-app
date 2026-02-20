@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import { useState, useCallback, useRef, useEffect, lazy, Suspense } from 'react'
+import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
 import { BarChart3, LogOut, X, Moon, Sun, BookOpen, MessageSquare, CalendarCheck, Bell, Flag, PawPrint, Briefcase, Baby } from 'lucide-react'
 import { useAuth } from './hooks/useAuth'
 import { useDarkMode } from './hooks/useDarkMode'
@@ -17,26 +17,34 @@ import CalendarView from './components/CalendarView'
 import WeeklyReport from './components/WeeklyReport'
 import NotificationSettings from './components/NotificationSettings'
 
-import AboutPage from './pages/AboutPage'
-import PrivacyPage from './pages/PrivacyPage'
-import TermsPage from './pages/TermsPage'
-import ContactPage from './pages/ContactPage'
-import FaqPage from './pages/FaqPage'
-import GuidePage from './pages/GuidePage'
-import PricingPage from './pages/PricingPage'
-import BlogListPage from './pages/BlogListPage'
-import IntroductionBlog from './pages/blog/IntroductionBlog'
-import FeaturesBlog from './pages/blog/FeaturesBlog'
-import UseCasesBlog from './pages/blog/UseCasesBlog'
-import AITechnologyBlog from './pages/blog/AITechnologyBlog'
-import ProductivityBlog from './pages/blog/ProductivityBlog'
-import ComparisonBlog from './pages/blog/ComparisonBlog'
-import TipsBlog from './pages/blog/TipsBlog'
-import FutureBlog from './pages/blog/FutureBlog'
-import TutorialPage from './pages/TutorialPage'
-import ReviewsPage from './pages/ReviewsPage'
-import AIGuidePage from './pages/AIGuidePage'
-import ComparisonPage from './pages/ComparisonPage'
+// 정적 페이지 lazy loading
+const AboutPage = lazy(() => import('./pages/AboutPage'))
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage'))
+const TermsPage = lazy(() => import('./pages/TermsPage'))
+const ContactPage = lazy(() => import('./pages/ContactPage'))
+const FaqPage = lazy(() => import('./pages/FaqPage'))
+const GuidePage = lazy(() => import('./pages/GuidePage'))
+const PricingPage = lazy(() => import('./pages/PricingPage'))
+const BlogListPage = lazy(() => import('./pages/BlogListPage'))
+const IntroductionBlog = lazy(() => import('./pages/blog/IntroductionBlog'))
+const FeaturesBlog = lazy(() => import('./pages/blog/FeaturesBlog'))
+const UseCasesBlog = lazy(() => import('./pages/blog/UseCasesBlog'))
+const AITechnologyBlog = lazy(() => import('./pages/blog/AITechnologyBlog'))
+const ProductivityBlog = lazy(() => import('./pages/blog/ProductivityBlog'))
+const ComparisonBlog = lazy(() => import('./pages/blog/ComparisonBlog'))
+const TipsBlog = lazy(() => import('./pages/blog/TipsBlog'))
+const FutureBlog = lazy(() => import('./pages/blog/FutureBlog'))
+const TutorialPage = lazy(() => import('./pages/TutorialPage'))
+const ReviewsPage = lazy(() => import('./pages/ReviewsPage'))
+const AIGuidePage = lazy(() => import('./pages/AIGuidePage'))
+const ComparisonPage = lazy(() => import('./pages/ComparisonPage'))
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
+
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => { window.scrollTo(0, 0) }, [pathname])
+  return null
+}
 
 function MainApp() {
   const { user, loading, login, register, loginWithGoogle, logout } = useAuth()
@@ -343,29 +351,33 @@ function MainApp() {
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<MainApp />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/privacy" element={<PrivacyPage />} />
-        <Route path="/terms" element={<TermsPage />} />
-        <Route path="/contact" element={<ContactPage />} />
-        <Route path="/faq" element={<FaqPage />} />
-        <Route path="/guide" element={<GuidePage />} />
-        <Route path="/pricing" element={<PricingPage />} />
-        <Route path="/blog" element={<BlogListPage />} />
-        <Route path="/blog/introduction" element={<IntroductionBlog />} />
-        <Route path="/blog/features" element={<FeaturesBlog />} />
-        <Route path="/blog/use-cases" element={<UseCasesBlog />} />
-        <Route path="/blog/ai-technology" element={<AITechnologyBlog />} />
-        <Route path="/blog/productivity" element={<ProductivityBlog />} />
-        <Route path="/blog/comparison" element={<ComparisonBlog />} />
-        <Route path="/blog/tips" element={<TipsBlog />} />
-        <Route path="/blog/future" element={<FutureBlog />} />
-        <Route path="/tutorial" element={<TutorialPage />} />
-        <Route path="/reviews" element={<ReviewsPage />} />
-        <Route path="/ai-guide" element={<AIGuidePage />} />
-        <Route path="/comparison" element={<ComparisonPage />} />
-      </Routes>
+      <ScrollToTop />
+      <Suspense fallback={<div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center"><p className="text-gray-500 dark:text-gray-400">로딩 중...</p></div>}>
+        <Routes>
+          <Route path="/" element={<MainApp />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/faq" element={<FaqPage />} />
+          <Route path="/guide" element={<GuidePage />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/blog" element={<BlogListPage />} />
+          <Route path="/blog/introduction" element={<IntroductionBlog />} />
+          <Route path="/blog/features" element={<FeaturesBlog />} />
+          <Route path="/blog/use-cases" element={<UseCasesBlog />} />
+          <Route path="/blog/ai-technology" element={<AITechnologyBlog />} />
+          <Route path="/blog/productivity" element={<ProductivityBlog />} />
+          <Route path="/blog/comparison" element={<ComparisonBlog />} />
+          <Route path="/blog/tips" element={<TipsBlog />} />
+          <Route path="/blog/future" element={<FutureBlog />} />
+          <Route path="/tutorial" element={<TutorialPage />} />
+          <Route path="/reviews" element={<ReviewsPage />} />
+          <Route path="/ai-guide" element={<AIGuidePage />} />
+          <Route path="/comparison" element={<ComparisonPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   )
 }

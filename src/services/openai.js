@@ -1,6 +1,33 @@
 import { parseDateFromText } from '../utils/dateParser.js'
+import { auth } from './firebase.js'
 
 const isDev = import.meta.env.DEV
+
+/** OpenAI API 호출 헬퍼 (개발: Vite 프록시, 프로덕션: 서버리스 + Firebase Auth 토큰) */
+async function callOpenAI(body) {
+  if (isDev) {
+    const response = await fetch('/api/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify(body),
+    })
+    return response.json()
+  }
+
+  const headers = { 'Content-Type': 'application/json' }
+  if (auth?.currentUser) {
+    headers['Authorization'] = `Bearer ${await auth.currentUser.getIdToken()}`
+  }
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+  })
+  return response.json()
+}
 
 export async function parseSchedule(userMessage, recentEvents = [], lastEventContext = null) {
   const now = new Date()
@@ -166,28 +193,7 @@ update 응답: targetEventId 필수, updates = 변경할 필드만 (예: {"title
     temperature: 0.3,
   }
 
-  let data
-
-  if (isDev) {
-    // Development: Vite proxy
-    const response = await fetch('/api/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify(body),
-    })
-    data = await response.json()
-  } else {
-    // Production: Vercel serverless function
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    data = await response.json()
-  }
+  const data = await callOpenAI(body)
 
   if (data.error) {
     throw new Error(data.error.message || 'OpenAI API 호출 실패')
@@ -284,26 +290,7 @@ export async function generateDailySchedule(preferences) {
     temperature: 0.5,
   }
 
-  let data
-
-  if (isDev) {
-    const response = await fetch('/api/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify(body),
-    })
-    data = await response.json()
-  } else {
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    data = await response.json()
-  }
+  const data = await callOpenAI(body)
 
   if (data.error) {
     throw new Error(data.error.message || 'OpenAI API 호출 실패')
@@ -414,26 +401,7 @@ ${pets.length > 1 ? `\n동시 케어: ${simultaneous ? '예 (같은 시간에 �
     temperature: 0.5,
   }
 
-  let data
-
-  if (isDev) {
-    const response = await fetch('/api/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify(body),
-    })
-    data = await response.json()
-  } else {
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    data = await response.json()
-  }
+  const data = await callOpenAI(body)
 
   if (data.error) {
     throw new Error(data.error.message || 'OpenAI API 호출 실패')
@@ -546,26 +514,7 @@ export async function generateWorkSchedule(profile, tasks) {
     temperature: 0.5,
   }
 
-  let data
-
-  if (isDev) {
-    const response = await fetch('/api/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify(body),
-    })
-    data = await response.json()
-  } else {
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    data = await response.json()
-  }
+  const data = await callOpenAI(body)
 
   if (data.error) {
     throw new Error(data.error.message || 'OpenAI API 호출 실패')
@@ -639,10 +588,12 @@ export async function generateChildcareSchedule(childInfo) {
 
 활동 배치 규칙:
 - 기상 후: 기저귀 교체 → 수유/식사 → 놀이
-- 놀이 후: 낮잠 → 기저귀 교체 → 수유/식사 반복
+- 놀이 후: 낮잠 → 기저귀 교체 → 수유/식사
 - 저녁: 목욕(1회) → 마지막 수유 → 취침
+- 놀이(play)는 하루 1회만 생성. 여러 놀이 활동이 있으면 하나의 이벤트로 통합 (예: "희영이 놀이 시간" 1개)
 - 활동 사이 5~10분 간격 유지
 - 절대 시간 겹침 금지
+- 같은 제목의 이벤트를 중복 생성하지 마세요
 - 실제 활동만 이벤트로 생성 (자유 시간은 이벤트로 만들지 않음)
 
 모든 제목은 한국어로 작성
@@ -664,26 +615,7 @@ duration은 분 단위
     temperature: 0.5,
   }
 
-  let data
-
-  if (isDev) {
-    const response = await fetch('/api/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify(body),
-    })
-    data = await response.json()
-  } else {
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    data = await response.json()
-  }
+  const data = await callOpenAI(body)
 
   if (data.error) {
     throw new Error(data.error.message || 'OpenAI API 호출 실패')

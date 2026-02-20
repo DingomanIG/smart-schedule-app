@@ -64,7 +64,20 @@ export default function PrivacyPage() {
             사용자만 자신의 데이터에 접근할 수 있도록 제한하고 있습니다.
           </p>
 
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">6. 이용자의 권리</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">6. 쿠키 및 광고 기술</h2>
+          <p>
+            서비스는 이용자 경험 향상 및 서비스 운영을 위해 쿠키(Cookie)를 사용할 수 있습니다.
+            또한 서비스는 Google AdSense를 통해 광고를 게재하며, 이 과정에서 Google 및 제3자 광고
+            네트워크가 쿠키를 사용하여 이용자의 관심사에 기반한 맞춤 광고를 제공할 수 있습니다.
+          </p>
+          <ul className="list-disc list-inside space-y-1">
+            <li>Google은 DoubleClick 쿠키를 사용하여 이용자의 방문 기록을 기반으로 광고를 게재합니다.</li>
+            <li>이용자는 <a href="https://adssettings.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">Google 광고 설정</a>에서 맞춤 광고를 비활성화할 수 있습니다.</li>
+            <li>제3자 광고 쿠키의 사용을 거부하려면 <a href="https://optout.aboutads.info" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">aboutads.info</a>를 방문하여 설정할 수 있습니다.</li>
+            <li>대부분의 웹 브라우저에서 쿠키 설정을 통해 쿠키 허용/차단을 관리할 수 있습니다.</li>
+          </ul>
+
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">7. 이용자의 권리</h2>
           <p>
             이용자는 언제든지 자신의 개인정보를 조회하거나 수정할 수 있으며, 회원 탈퇴를 통해
             개인정보의 삭제를 요청할 수 있습니다. 개인정보 관련 문의는{' '}

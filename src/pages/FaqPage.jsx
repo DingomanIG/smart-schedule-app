@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronDown, ChevronUp, Home } from 'lucide-react'
 import SEO from '../components/SEO'
+import AdSenseAd from '../components/AdSenseAd'
 
 export default function FaqPage() {
   const [openIndex, setOpenIndex] = useState(null)
@@ -82,12 +83,12 @@ export default function FaqPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <SEO title="자주 묻는 질문" description="스마트 스케줄 사용법, 요금, AI 기능 등 자주 묻는 질문과 답변을 확인하세요." path="/faq" />
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-4xl mx-auto px-4 py-4">
-          <Link to="/" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700">
+          <Link to="/" className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
             <Home size={20} />
             <span className="font-semibold">홈으로</span>
           </Link>
@@ -96,35 +97,35 @@ export default function FaqPage() {
 
       {/* Main */}
       <main className="max-w-4xl mx-auto px-4 py-12">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">자주 묻는 질문</h1>
-        <p className="text-lg text-gray-600 mb-12">
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">자주 묻는 질문</h1>
+        <p className="text-lg text-gray-600 dark:text-gray-400 mb-12">
           스마트 스케줄 사용에 대해 궁금한 점을 빠르게 찾아보세요.
         </p>
 
         {faqs.map((section, sectionIdx) => (
           <div key={sectionIdx} className="mb-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">{section.category}</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">{section.category}</h2>
             <div className="space-y-4">
               {section.items.map((faq, idx) => {
                 const globalIdx = sectionIdx * 100 + idx
                 const isOpen = openIndex === globalIdx
 
                 return (
-                  <div key={idx} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <div key={idx} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <button
                       onClick={() => toggle(globalIdx)}
-                      className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
+                      className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
-                      <span className="font-semibold text-gray-900">{faq.q}</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">{faq.q}</span>
                       {isOpen ? (
-                        <ChevronUp className="text-blue-600 shrink-0" size={20} />
+                        <ChevronUp className="text-blue-600 dark:text-blue-400 shrink-0" size={20} />
                       ) : (
-                        <ChevronDown className="text-gray-400 shrink-0" size={20} />
+                        <ChevronDown className="text-gray-400 dark:text-gray-500 shrink-0" size={20} />
                       )}
                     </button>
                     {isOpen && (
-                      <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
-                        <p className="text-gray-700 leading-relaxed">{faq.a}</p>
+                      <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                        <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{faq.a}</p>
                       </div>
                     )}
                   </div>
@@ -135,9 +136,9 @@ export default function FaqPage() {
         ))}
 
         {/* Contact CTA */}
-        <div className="mt-16 bg-blue-50 rounded-lg p-8 text-center">
-          <h3 className="text-xl font-bold text-gray-900 mb-2">답변을 찾지 못하셨나요?</h3>
-          <p className="text-gray-600 mb-4">언제든지 문의해 주세요. 빠르게 답변 드리겠습니다.</p>
+        <div className="mt-16 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-8 text-center">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">답변을 찾지 못하셨나요?</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">언제든지 문의해 주세요. 빠르게 답변 드리겠습니다.</p>
           <Link
             to="/contact"
             className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
@@ -145,22 +146,25 @@ export default function FaqPage() {
             문의하기
           </Link>
         </div>
+        <div className="max-w-4xl mx-auto px-4 mt-12">
+          <AdSenseAd />
+        </div>
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-16">
+      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-16">
         <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-500">
-            <Link to="/about" className="hover:text-gray-700">서비스 소개</Link>
+          <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+            <Link to="/about" className="hover:text-gray-700 dark:hover:text-gray-300">서비스 소개</Link>
             <span>|</span>
-            <Link to="/privacy" className="hover:text-gray-700">개인정보처리방침</Link>
+            <Link to="/privacy" className="hover:text-gray-700 dark:hover:text-gray-300">개인정보처리방침</Link>
             <span>|</span>
-            <Link to="/terms" className="hover:text-gray-700">이용약관</Link>
+            <Link to="/terms" className="hover:text-gray-700 dark:hover:text-gray-300">이용약관</Link>
             <span>|</span>
-            <Link to="/contact" className="hover:text-gray-700">문의하기</Link>
+            <Link to="/contact" className="hover:text-gray-700 dark:hover:text-gray-300">문의하기</Link>
           </div>
-          <p className="text-center text-xs text-gray-400 mt-4">
-            © 2026 스마트 스케줄. All rights reserved.
+          <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-4">
+            &copy; 2026 스마트 스케줄. All rights reserved.
           </p>
         </div>
       </footer>

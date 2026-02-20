@@ -7,7 +7,7 @@ export default function AdSenseAd({ slot, format = 'auto', responsive = true, cl
   const pushed = useRef(false)
 
   useEffect(() => {
-    if (pushed.current || !adRef.current) return
+    if (!slot || pushed.current || !adRef.current) return
     try {
       const adsbygoogle = window.adsbygoogle || []
       adsbygoogle.push({})
@@ -16,7 +16,10 @@ export default function AdSenseAd({ slot, format = 'auto', responsive = true, cl
     } catch (e) {
       // 광고 로드 실패 시 무시
     }
-  }, [])
+  }, [slot])
+
+  // slot이 없으면 렌더링하지 않음 (auto-ads가 자동 배치)
+  if (!slot) return null
 
   return (
     <div className={`ad-container my-6 ${className}`}>

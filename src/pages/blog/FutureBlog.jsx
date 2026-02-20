@@ -327,7 +327,7 @@ const FutureBlog = () => {
                 피드백 보내기
               </Link>
               <Link
-                to="/register"
+                to="/"
                 className="block bg-white bg-opacity-20 backdrop-blur text-white px-6 py-3 rounded-lg font-semibold hover:bg-opacity-30 transition-colors text-center border border-white"
               >
                 베타 테스터 신청

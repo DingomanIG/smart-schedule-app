@@ -125,7 +125,7 @@ const IntroductionBlog = () => {
               복잡한 설정 없이 바로 시작할 수 있습니다.
             </p>
             <Link
-              to="/register"
+              to="/"
               className="inline-flex items-center bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
             >
               무료로 시작하기

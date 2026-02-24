@@ -80,7 +80,7 @@ function BlogCard({ title, description, path }) {
 
 export default function BlogListPage() {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <SEO title="블로그" description="AI 일정 관리 팁, 생산성 향상 노하우, 스마트 스케줄 활용법을 확인하세요." path="/blog" />
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">

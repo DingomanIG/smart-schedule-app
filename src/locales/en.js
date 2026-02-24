@@ -74,6 +74,12 @@ const en = {
     weekly: 'Week',
     monthly: 'Month',
     noEvents: 'No events.',
+    filterChat: 'Chat',
+    filterDaily: 'Daily',
+    filterPetCare: 'Pet',
+    filterWork: 'Work',
+    filterChildcare: 'Childcare',
+    filterMajor: 'Events',
     eventsCount: ' events',
 
     // Weekly Report
@@ -125,6 +131,7 @@ const en = {
     helperAskDays: 'How many days of schedule would you like?',
     helperAskDaysRetry: "Couldn't recognize the number of days. Please enter a number. (e.g., 1, 3, 7)",
     helperDayUnit: ' day(s)',
+    helperMonthUnit: '1 month',
     helperTemplateDayLabel: '▼ Daily template (removing items applies to all days)',
 
     // Daily Schedule Management
@@ -278,6 +285,7 @@ const en = {
     childcareCategoryDevelopment: 'Development',
 
     // Work categories
+    all: 'All',
     workCategoryDeepwork: 'Deep Work',
     workCategoryMeeting: 'Meeting',
     workCategoryAdmin: 'Admin',
@@ -315,6 +323,11 @@ const en = {
     workEventTitlePlaceholder: 'Task name',
     workAddConfirm: 'Add',
     workDeleteConfirm: 'Delete this task?',
+
+    // Quick Add (calendar double-click)
+    quickAddHeading: 'Quick Add Event',
+    quickAddTitlePlaceholder: 'Enter event title',
+    quickAddSave: 'Add',
 }
 
 export default en

@@ -83,7 +83,7 @@ export default function FaqPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <SEO title="자주 묻는 질문" description="스마트 스케줄 사용법, 요금, AI 기능 등 자주 묻는 질문과 답변을 확인하세요." path="/faq" />
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">

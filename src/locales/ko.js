@@ -74,6 +74,12 @@ const ko = {
     weekly: '주간',
     monthly: '월간',
     noEvents: '일정이 없습니다.',
+    filterChat: '채팅',
+    filterDaily: '일상',
+    filterPetCare: '펫',
+    filterWork: '업무',
+    filterChildcare: '육아',
+    filterMajor: '행사',
     eventsCount: '개 일정',
 
     // Weekly Report
@@ -125,6 +131,7 @@ const ko = {
     helperAskDays: '며칠치 스케줄을 만들까요?',
     helperAskDaysRetry: '일수를 인식하지 못했어요. 숫자로 입력해주세요. (예: 1, 3, 7)',
     helperDayUnit: '일',
+    helperMonthUnit: '한달',
     helperTemplateDayLabel: '▼ 매일 반복할 일정 (항목 제거 시 모든 날짜에 적용)',
 
     // Daily Schedule Management
@@ -278,6 +285,7 @@ const ko = {
     childcareCategoryDevelopment: '발달',
 
     // Work categories
+    all: '전체',
     workCategoryDeepwork: '딥워크',
     workCategoryMeeting: '회의',
     workCategoryAdmin: '정리',
@@ -315,6 +323,11 @@ const ko = {
     workEventTitlePlaceholder: '업무 이름',
     workAddConfirm: '추가',
     workDeleteConfirm: '이 업무를 삭제하시겠습니까?',
+
+    // Quick Add (캘린더 더블클릭)
+    quickAddHeading: '빠른 일정 등록',
+    quickAddTitlePlaceholder: '일정 제목을 입력하세요',
+    quickAddSave: '등록',
 }
 
 export default ko

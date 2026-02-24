@@ -59,6 +59,12 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #f3f4f6;
+}
+
+.dark body,
+body.dark {
+  background-color: #111827;
 }
 
 code {
@@ -106,27 +112,34 @@ code {
 }
 
 .calendar-wrapper .react-calendar__month-view__days__day--weekend:nth-child(7n) {
-  color: #3b82f6;
+  color: #374151;
+}
+
+.calendar-wrapper .react-calendar__month-view__days {
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr);
+  border-top: 1px solid #e5e7eb;
+  border-left: 1px solid #e5e7eb;
 }
 
 .calendar-wrapper .react-calendar__tile {
   position: relative;
-  border-radius: 0.5rem;
-  font-size: 0.8125rem;
+  border-radius: 0;
+  font-size: 1rem;
   color: #374151;
   padding: 3em 0.25em;
+  border-right: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .calendar-wrapper .react-calendar__tile:hover {
   background: #f3f4f6;
-  border-radius: 0.5rem;
 }
 
 .calendar-wrapper .react-calendar__tile--now {
   background: #dbeafe !important;
   color: #2563eb !important;
   font-weight: 700;
-  border-radius: 0.5rem;
 }
 
 .calendar-wrapper .react-calendar__tile--now:hover {
@@ -136,7 +149,6 @@ code {
 .calendar-wrapper .react-calendar__tile--active {
   background: #3b82f6;
   color: #fff !important;
-  border-radius: 0.5rem;
 }
 
 .calendar-wrapper .react-calendar__tile--active:hover {
@@ -150,6 +162,10 @@ code {
 }
 
 .calendar-wrapper .react-calendar__month-view__days__day--neighboringMonth {
+  color: #d1d5db;
+}
+
+.calendar-wrapper .react-calendar__month-view__days__day--neighboringMonth.react-calendar__month-view__days__day--weekend:nth-child(7n) {
   color: #d1d5db;
 }
 
@@ -181,11 +197,18 @@ code {
 }
 
 .dark .calendar-wrapper .react-calendar__month-view__days__day--weekend:nth-child(7n) {
-  color: #60a5fa;
+  color: #d1d5db;
+}
+
+.dark .calendar-wrapper .react-calendar__month-view__days {
+  border-top-color: #374151;
+  border-left-color: #374151;
 }
 
 .dark .calendar-wrapper .react-calendar__tile {
   color: #d1d5db;
+  border-right-color: #374151;
+  border-bottom-color: #374151;
 }
 
 .dark .calendar-wrapper .react-calendar__tile:hover {
@@ -220,6 +243,10 @@ code {
   color: #4b5563;
 }
 
+.dark .calendar-wrapper .react-calendar__month-view__days__day--neighboringMonth.react-calendar__month-view__days__day--weekend:nth-child(7n) {
+  color: #4b5563;
+}
+
 /* 공휴일 날짜 빨간색 표시 */
 .calendar-wrapper .react-calendar__tile.holiday-tile {
   color: #ef4444 !important;
@@ -236,6 +263,11 @@ code {
 
 .dark .calendar-wrapper .react-calendar__tile.holiday-tile:not(.react-calendar__tile--active) {
   background: rgba(239, 68, 68, 0.08);
+}
+
+/* 월간 캘린더 항상 5줄 고정 (6번째 줄 숨김) */
+.calendar-wrapper .react-calendar__month-view__days > *:nth-child(n+36) {
+  display: none;
 }
 
 /* 드래그 앤 드롭 - 드롭존 호버 피드백 */

@@ -3,7 +3,7 @@ import SEO from '../components/SEO'
 
 export default function NotFoundPage() {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center px-4">
       <SEO title="페이지를 찾을 수 없습니다" description="요청하신 페이지를 찾을 수 없습니다." />
       <div className="text-center max-w-md">
         <p className="text-6xl font-bold text-gray-300 dark:text-gray-600 mb-4">404</p>

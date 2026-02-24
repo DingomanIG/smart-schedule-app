@@ -102,14 +102,36 @@ export async function deleteAllEvents(userId) {
   return snapshot.size
 }
 
-// Batch Create - 도우미 일괄 일정 생성
+// Batch Create - 도우미 일괄 일정 생성 (중복 방지)
 export async function addBatchEvents(userId, events, date, helperId) {
+  // 해당 날짜의 기존 이벤트 조회 (중복 방지)
+  const dayStart = new Date(`${date}T00:00:00`)
+  const dayEnd = new Date(`${date}T23:59:59`)
+  const existingQuery = query(
+    collection(db, 'events'),
+    where('userId', '==', userId),
+    where('startTime', '>=', Timestamp.fromDate(dayStart)),
+    where('startTime', '<=', Timestamp.fromDate(dayEnd)),
+  )
+  const existingSnapshot = await getDocs(existingQuery)
+  const existingSet = new Set(
+    existingSnapshot.docs.map((d) => {
+      const data = d.data()
+      return `${data.title}|${data.startTime?.toDate?.()?.getTime()}`
+    })
+  )
+
   const batch = writeBatch(db)
   const eventsRef = collection(db, 'events')
+  let added = 0
 
   events.forEach((event) => {
     const startDate = new Date(`${date}T${event.time}`)
     if (isNaN(startDate.getTime())) return
+
+    // 같은 제목 + 같은 시작 시간이면 건너뛰기
+    const key = `${event.title}|${startDate.getTime()}`
+    if (existingSet.has(key)) return
 
     const endDate = event.duration
       ? new Date(startDate.getTime() + event.duration * 60000)
@@ -130,7 +152,8 @@ export async function addBatchEvents(userId, events, date, helperId) {
     if (helperId) docData.helperId = helperId
     if (event.careType) docData.careType = event.careType
     batch.set(newDocRef, docData)
+    added++
   })
 
-  await batch.commit()
+  if (added > 0) await batch.commit()
 }

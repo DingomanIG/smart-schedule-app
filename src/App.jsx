@@ -114,7 +114,7 @@ function MainApp() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
         <p className="text-gray-500 dark:text-gray-400">{t('loading')}</p>
       </div>
     )
@@ -125,7 +125,7 @@ function MainApp() {
   }
 
   return (
-    <div className="h-screen bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden">
+    <div className="h-screen bg-gray-100 dark:bg-gray-900 flex flex-col overflow-hidden">
       <SEO />
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shrink-0">
@@ -158,7 +158,7 @@ function MainApp() {
               title={dark ? t('lightMode') : t('darkMode')}
             >
               {dark ? <Sun size={16} /> : <Moon size={16} />}
-              {t('darkMode')}
+              {dark ? t('lightMode') : t('darkMode')}
             </button>
             <Link
               to="/blog"
@@ -194,7 +194,7 @@ function MainApp() {
           // lg 이상에서만 splitPercent 적용 (CSS media query 대신 inline style)
         >
           <div className="flex-1 overflow-y-auto">
-            <CalendarView userId={user.uid} refreshKey={calendarKey} now={now} onCurrentEventChange={setCurrentEvent} />
+            <CalendarView userId={user.uid} refreshKey={calendarKey} now={now} onCurrentEventChange={setCurrentEvent} onEventCreated={handleEventCreated} />
           </div>
         </section>
 
@@ -352,7 +352,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
-      <Suspense fallback={<div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center"><p className="text-gray-500 dark:text-gray-400">로딩 중...</p></div>}>
+      <Suspense fallback={<div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center"><p className="text-gray-500 dark:text-gray-400">로딩 중...</p></div>}>
         <Routes>
           <Route path="/" element={<MainApp />} />
           <Route path="/about" element={<AboutPage />} />

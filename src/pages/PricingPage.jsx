@@ -47,7 +47,7 @@ export default function PricingPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-100">
       <SEO title="요금제" description="스마트 스케줄 무료, 프리미엄, 팀 요금제를 비교하고 나에게 맞는 플랜을 선택하세요." path="/pricing" />
       {/* Header */}
       <header className="bg-white border-b border-gray-200">

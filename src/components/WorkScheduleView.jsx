@@ -16,7 +16,10 @@ const CATEGORY_TABS = [
   { key: 'meeting', labelKey: 'workCategoryMeeting' },
   { key: 'planning', labelKey: 'workCategoryPlanning' },
   { key: 'admin', labelKey: 'workCategoryAdmin' },
+  { key: 'communication', labelKey: 'workCategoryCommunication' },
   { key: 'break', labelKey: 'workCategoryBreak' },
+  { key: 'commute', labelKey: 'workCategoryCommute' },
+  { key: 'deadline', labelKey: 'workCategoryDeadline' },
 ]
 
 const HOURS = Array.from({ length: 15 }, (_, i) => i + 6) // 06:00 ~ 20:00 (프로필 설정용)
@@ -104,7 +107,7 @@ export default function WorkScheduleView({ userId, onEventCreated }) {
         const allEvents = await getEvents(userId, dayStart, dayEnd)
         const WORK_CATS = ['deepwork', 'meeting', 'admin', 'planning', 'communication', 'break', 'deadline']
         const workEvents = allEvents.filter(e =>
-          e.helperId === 'H04' || (e.createdVia === 'helper' && WORK_CATS.includes(e.category))
+          e.helperId === 'H04' || WORK_CATS.includes(e.category)
         )
         setEvents(workEvents)
       } catch {
@@ -151,7 +154,7 @@ export default function WorkScheduleView({ userId, onEventCreated }) {
     const allEvents = await getEvents(userId, dayStart, dayEnd)
     const WORK_CATS = ['deepwork', 'meeting', 'admin', 'planning', 'communication', 'break', 'deadline']
     setEvents(allEvents.filter(e =>
-      e.helperId === 'H04' || (e.createdVia === 'helper' && WORK_CATS.includes(e.category))
+      e.helperId === 'H04' || WORK_CATS.includes(e.category)
     ))
   }
 
@@ -284,7 +287,7 @@ export default function WorkScheduleView({ userId, onEventCreated }) {
                   : catStyle || 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
               } hover:opacity-80`}
             >
-              {tab.key}
+              {t(tab.labelKey)}
               {tab.key !== 'all' && count > 0 && (
                 <span className={`text-[10px] ${
                   activeCategory === tab.key ? 'text-indigo-200' : 'opacity-60'

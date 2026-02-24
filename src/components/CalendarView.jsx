@@ -1,14 +1,35 @@
 import { useState, useEffect, useRef } from 'react'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
-import { Clock, MapPin, Trash2, GripVertical, CheckCircle2, Circle } from 'lucide-react'
-import { getEvents, deleteEvent, moveEvent, toggleEventCompleted } from '../services/schedule'
+import { Clock, MapPin, Trash2, GripVertical, CheckCircle2, Circle, Eye, EyeOff, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { getEvents, deleteEvent, moveEvent, updateEvent, toggleEventCompleted, createEvent } from '../services/schedule'
+import { Timestamp } from 'firebase/firestore'
 import { getMonthHolidayMap, generateAnniversaryDates } from '../data/koreanHolidays'
 import { getHelperProfile } from '../services/helperProfile'
 import { lunarToSolar } from '../utils/lunarConverter'
 import DayView from './DayView'
 import WeekView from './WeekView'
 import { useLanguage } from '../hooks/useLanguage'
+import { useCalendarVisibility } from '../hooks/useCalendarVisibility'
+import { getEventSource } from '../utils/eventClassifier'
+
+// 월간 뷰 소스별 뱃지 색상 (chat+daily는 동일 파란색이므로 'general'로 병합)
+const SOURCE_BADGE_COLORS = {
+  general:   'bg-blue-500',
+  petcare:   'bg-teal-500',
+  work:      'bg-indigo-500',
+  childcare: 'bg-pink-500',
+}
+const SOURCE_BADGE_ORDER = ['general', 'petcare', 'work', 'childcare']
+
+// 월간 뷰 일정 카드 테두리 색상 (소스별)
+const SOURCE_BORDER_COLORS = {
+  chat:      'border-gray-200 dark:border-gray-700',
+  daily:     'border-blue-300 dark:border-blue-700',
+  petcare:   'border-teal-300 dark:border-teal-700',
+  work:      'border-indigo-300 dark:border-indigo-700',
+  childcare: 'border-pink-300 dark:border-pink-700',
+}
 
 const VIEW_MODES_KO = [
   { key: 'day', label: '일간' },
@@ -29,7 +50,7 @@ const toLocalDateStr = (date) => {
   return `${y}-${m}-${d}`
 }
 
-export default function CalendarView({ userId, refreshKey, now: nowProp, onCurrentEventChange }) {
+export default function CalendarView({ userId, refreshKey, now: nowProp, onCurrentEventChange, onEventCreated }) {
   const { lang, t } = useLanguage()
   const VIEW_MODES = lang === 'en' ? VIEW_MODES_EN : VIEW_MODES_KO
   const [viewMode, setViewMode] = useState('month')
@@ -45,9 +66,20 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
   const [anniversaryMap, setAnniversaryMap] = useState(new Map())
   const [eventMap, setEventMap] = useState(new Map())
   const [weekViewRange, setWeekViewRange] = useState({ startHour: 0, endHour: 24 })
+  const [activeStartDate, setActiveStartDate] = useState(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1))
   const [localNow, setLocalNow] = useState(new Date())
   const nowTimerRef = useRef(null)
+  const [quickAddDate, setQuickAddDate] = useState(null)
+  const [quickAddTitle, setQuickAddTitle] = useState('')
+  const [qaStartAmpm, setQaStartAmpm] = useState('AM')
+  const [qaStartHour, setQaStartHour] = useState(9)
+  const [qaStartMin, setQaStartMin] = useState(0)
+  const [qaEndAmpm, setQaEndAmpm] = useState('AM')
+  const [qaEndHour, setQaEndHour] = useState(10)
+  const [qaEndMin, setQaEndMin] = useState(0)
+  const lastClickRef = useRef({ date: null, time: 0 })
   const now = nowProp || localNow
+  const { visibility, toggleVisibility } = useCalendarVisibility()
 
   // 현재 시간 매분 업데이트 (fallback when no prop)
   useEffect(() => {
@@ -92,6 +124,21 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
     setDraggingEvent(null)
   }
 
+  // 일정 종료 시간 리사이즈 핸들러
+  const handleResizeEvent = async (eventId, dateStr, newEndHour) => {
+    const event = monthEvents.find((e) => e.id === eventId)
+    if (!event) return
+    const [year, month, day] = dateStr.split('-').map(Number)
+    const newEnd = new Date(year, month - 1, day)
+    newEnd.setHours(Math.floor(newEndHour), Math.round((newEndHour % 1) * 60), 0, 0)
+    try {
+      await updateEvent(eventId, { endTime: Timestamp.fromDate(newEnd) })
+      await fetchMonthEvents(selectedDate)
+    } catch (err) {
+      console.error('일정 리사이즈 오류:', err)
+    }
+  }
+
   // 현재 보이는 월의 전체 일정 가져오기
   const fetchMonthEvents = async (activeDate) => {
     const start = new Date(activeDate.getFullYear(), activeDate.getMonth(), 1)
@@ -104,17 +151,23 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
     }
   }
 
+  // 필터 토글 기반 표시 이벤트 파생
+  const visibleEvents = monthEvents.filter((evt) => {
+    const source = getEventSource(evt)
+    return visibility[source] !== false
+  })
+
   // 선택된 날짜의 일정 필터링
   useEffect(() => {
     const dateStr = toLocalDateStr(selectedDate)
-    const filtered = monthEvents.filter((evt) => {
+    const filtered = visibleEvents.filter((evt) => {
       const evtDate = evt.startTime?.toDate?.()
         ? toLocalDateStr(evt.startTime.toDate())
         : ''
       return evtDate === dateStr
     })
     setEvents(filtered)
-  }, [selectedDate, monthEvents])
+  }, [selectedDate, monthEvents, visibility])
 
   // 초기 로드 및 월 변경 시
   useEffect(() => {
@@ -213,10 +266,31 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
     loadSleepRange()
   }, [userId, refreshKey, monthEvents])
 
-  const handleActiveStartDateChange = ({ activeStartDate }) => {
-    fetchMonthEvents(activeStartDate)
-    setHolidayMap(getMonthHolidayMap(activeStartDate.getFullYear(), activeStartDate.getMonth() + 1))
+  const handleActiveStartDateChange = ({ activeStartDate: asd }) => {
+    setActiveStartDate(asd)
+    fetchMonthEvents(asd)
+    setHolidayMap(getMonthHolidayMap(asd.getFullYear(), asd.getMonth() + 1))
   }
+
+  const goMonth = (offset) => {
+    const next = new Date(activeStartDate.getFullYear(), activeStartDate.getMonth() + offset, 1)
+    setActiveStartDate(next)
+    fetchMonthEvents(next)
+    setHolidayMap(getMonthHolidayMap(next.getFullYear(), next.getMonth() + 1))
+  }
+
+  const goToday = () => {
+    const now = new Date()
+    const first = new Date(now.getFullYear(), now.getMonth(), 1)
+    setActiveStartDate(first)
+    setSelectedDate(now)
+    fetchMonthEvents(first)
+    setHolidayMap(getMonthHolidayMap(now.getFullYear(), now.getMonth() + 1))
+  }
+
+  const monthYearLabel = lang === 'en'
+    ? `${activeStartDate.toLocaleString('en-US', { month: 'long' })} ${activeStartDate.getFullYear()}`
+    : `${activeStartDate.getFullYear()}년 ${activeStartDate.getMonth() + 1}월`
 
   const handleToggleCompleted = async (eventId, currentCompleted) => {
     try {
@@ -238,9 +312,55 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
     }
   }
 
-  // 날짜 선택 시 일간 뷰로 전환
+  // 날짜 클릭 (싱글=선택, 더블=빠른 등록)
   const handleDateClick = (date) => {
-    setSelectedDate(date)
+    const now = Date.now()
+    const last = lastClickRef.current
+    if (last.date && toLocalDateStr(last.date) === toLocalDateStr(date) && now - last.time < 400) {
+      // 더블클릭 → 빠른 등록 모달
+      setQuickAddDate(date)
+      setQuickAddTitle('')
+      setQaStartAmpm('AM')
+      setQaStartHour(9)
+      setQaStartMin(0)
+      setQaEndAmpm('AM')
+      setQaEndHour(10)
+      setQaEndMin(0)
+      lastClickRef.current = { date: null, time: 0 }
+    } else {
+      lastClickRef.current = { date, time: now }
+      setSelectedDate(date)
+    }
+  }
+
+  // AM/PM + 12h → 24h 변환
+  const to24Hour = (ampm, hour) => {
+    if (ampm === 'AM') return hour === 12 ? 0 : hour
+    return hour === 12 ? 12 : hour + 12
+  }
+
+  // 빠른 일정 등록
+  const handleQuickAdd = async () => {
+    if (!quickAddTitle.trim() || !quickAddDate) return
+    const startH = to24Hour(qaStartAmpm, qaStartHour)
+    const endH = to24Hour(qaEndAmpm, qaEndHour)
+    const startTotal = startH * 60 + qaStartMin
+    const endTotal = endH * 60 + qaEndMin
+    const duration = endTotal > startTotal ? endTotal - startTotal : 60
+    const timeStr = `${String(startH).padStart(2, '0')}:${String(qaStartMin).padStart(2, '0')}`
+    try {
+      await createEvent(userId, {
+        title: quickAddTitle.trim(),
+        date: toLocalDateStr(quickAddDate),
+        time: timeStr,
+        duration,
+      })
+      setQuickAddDate(null)
+      await fetchMonthEvents(activeStartDate)
+      onEventCreated?.()
+    } catch (err) {
+      console.error('빠른 일정 등록 오류:', err)
+    }
   }
 
   // 주간/일간 뷰에서 날짜 변경 시 월 데이터 갱신
@@ -268,13 +388,21 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
     const birthdayName = birthdayMap.get(dateStr)
     const anniversaryInfo = anniversaryMap.get(dateStr)
     const eventInfo = eventMap.get(dateStr)
-    const count = monthEvents.filter((evt) => {
+    const dayEvents = visibleEvents.filter((evt) => {
       const evtDate = evt.startTime?.toDate?.()
         ? toLocalDateStr(evt.startTime.toDate())
         : ''
       return evtDate === dateStr
-    }).length
-    const label = count > 99 ? '99' : String(count)
+    })
+    const showMajor = visibility.major !== false
+
+    // 소스별 카운트 (chat+daily → general 병합)
+    const sourceCounts = {}
+    dayEvents.forEach((evt) => {
+      const source = getEventSource(evt)
+      const visualKey = (source === 'chat' || source === 'daily') ? 'general' : source
+      sourceCounts[visualKey] = (sourceCounts[visualKey] || 0) + 1
+    })
     return (
       <>
         {holidayName && (
@@ -284,32 +412,40 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
             </span>
           </div>
         )}
-        {!holidayName && birthdayName && (
+        {showMajor && !holidayName && birthdayName && (
           <div className="absolute top-0.5 left-1/2 -translate-x-1/2 w-full px-0.5" title={`${birthdayName} 생일`}>
             <span className="block text-[12px] leading-tight text-pink-500 dark:text-pink-400 truncate text-center font-medium">
               {birthdayName} 생일
             </span>
           </div>
         )}
-        {!holidayName && !birthdayName && anniversaryInfo && (
+        {showMajor && !holidayName && !birthdayName && anniversaryInfo && (
           <div className="absolute top-0.5 left-1/2 -translate-x-1/2 w-full px-0.5" title={`${anniversaryInfo.name} ${lang === 'ko' ? anniversaryInfo.label : anniversaryInfo.labelEn}`}>
             <span className="block text-[12px] leading-tight text-purple-500 dark:text-purple-400 truncate text-center font-medium">
               {anniversaryInfo.name} {lang === 'ko' ? anniversaryInfo.label : anniversaryInfo.labelEn}
             </span>
           </div>
         )}
-        {!holidayName && !birthdayName && !anniversaryInfo && eventInfo && (
+        {showMajor && !holidayName && !birthdayName && !anniversaryInfo && eventInfo && (
           <div className="absolute top-0.5 left-1/2 -translate-x-1/2 w-full px-0.5" title={`${eventInfo.name} ${lang === 'ko' ? eventInfo.label : eventInfo.labelEn}`}>
             <span className="block text-[12px] leading-tight text-orange-500 dark:text-orange-400 truncate text-center font-medium">
               {eventInfo.name} {lang === 'ko' ? eventInfo.label : eventInfo.labelEn}
             </span>
           </div>
         )}
-        {count > 0 && (
-          <div className="absolute bottom-1 left-1/2 -translate-x-1/2" title={`${count}개 일정`}>
-            <span className="min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-              {label}
-            </span>
+        {dayEvents.length > 0 && (
+          <div className="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex flex-wrap justify-center gap-[2px] max-w-full px-0.5">
+            {SOURCE_BADGE_ORDER
+              .filter((key) => sourceCounts[key])
+              .map((key) => (
+                <span
+                  key={key}
+                  className={`min-w-[14px] h-[14px] px-[3px] ${SOURCE_BADGE_COLORS[key]} text-white text-[8px] font-bold rounded-full flex items-center justify-center leading-none`}
+                >
+                  {sourceCounts[key] > 99 ? '99' : sourceCounts[key]}
+                </span>
+              ))
+            }
           </div>
         )}
         {draggingEvent && (
@@ -351,7 +487,7 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
             onClick={() => setViewMode(key)}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center min-w-[64px] ${viewMode === key
               ? 'bg-blue-500 text-white'
-              : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+              : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'
               }`}
           >
             {label}
@@ -359,19 +495,69 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
         ))}
       </div>
 
+      {/* 캘린더 표시 필터 */}
+      <div className="flex gap-1 shrink-0 flex-wrap">
+        {[
+          { key: 'chat',      label: t('filterChat'),      active: 'bg-blue-500 text-white',      inactive: 'bg-blue-500/20 text-blue-400/50' },
+          { key: 'daily',     label: t('filterDaily'),     active: 'bg-blue-500 text-white',      inactive: 'bg-blue-500/20 text-blue-400/50' },
+          { key: 'petcare',   label: t('filterPetCare'),   active: 'bg-teal-500 text-white',      inactive: 'bg-teal-500/20 text-teal-400/50' },
+          { key: 'work',      label: t('filterWork'),      active: 'bg-indigo-500 text-white',    inactive: 'bg-indigo-500/20 text-indigo-400/50' },
+          { key: 'childcare', label: t('filterChildcare'), active: 'bg-pink-500 text-white',      inactive: 'bg-pink-500/20 text-pink-400/50' },
+          { key: 'major',     label: t('filterMajor'),     active: 'bg-red-500 text-white',       inactive: 'bg-red-500/20 text-red-400/50' },
+        ].map(({ key, label, active, inactive }) => {
+          const isVisible = visibility[key] !== false
+          return (
+            <button
+              key={key}
+              onClick={() => toggleVisibility(key)}
+              className={`flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded-lg transition-all ${
+                isVisible ? active : inactive
+              }`}
+              title={isVisible ? `${label} 숨기기` : `${label} 표시`}
+            >
+              {isVisible
+                ? <Eye size={10} className="shrink-0" />
+                : <EyeOff size={10} className="shrink-0" />
+              }
+              {label}
+            </button>
+          )
+        })}
+      </div>
+
       {/* 월간 뷰 */}
       {viewMode === 'month' && (
         <>
+          {/* 월 네비게이션 (주간 뷰와 동일) */}
+          <div className="flex items-center gap-2 px-1">
+            <button
+              onClick={goToday}
+              className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
+            >
+              {lang === 'en' ? 'Today' : '오늘'}
+            </button>
+            <button onClick={() => goMonth(-1)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+              <ChevronLeft size={18} className="text-gray-700 dark:text-gray-300" />
+            </button>
+            <button onClick={() => goMonth(1)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+              <ChevronRight size={18} className="text-gray-700 dark:text-gray-300" />
+            </button>
+            <span className="text-base font-semibold text-gray-800 dark:text-gray-200 ml-1">{monthYearLabel}</span>
+          </div>
+
           <div className="calendar-wrapper">
             <Calendar
               onChange={handleDateClick}
               value={selectedDate}
+              activeStartDate={activeStartDate}
               onActiveStartDateChange={handleActiveStartDateChange}
               tileContent={tileContent}
               tileClassName={tileClassName}
               formatDay={(locale, date) => date.getDate()}
               locale={lang === 'en' ? 'en-US' : 'ko-KR'}
               calendarType="gregory"
+              showNavigation={false}
+              showFixedNumberOfWeeks
             />
           </div>
 
@@ -445,9 +631,7 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
                     }}
                     onDragEnd={() => setDraggingEvent(null)}
                     className={`bg-white dark:bg-gray-800 border rounded-xl px-3 py-2 flex items-center justify-between cursor-grab active:cursor-grabbing transition-opacity ${
-                      evt.createdVia === 'helper'
-                        ? 'border-emerald-300 dark:border-emerald-700'
-                        : 'border-gray-200 dark:border-gray-700'
+                      SOURCE_BORDER_COLORS[getEventSource(evt)] || 'border-gray-200 dark:border-gray-700'
                     } ${draggingEvent?.id === evt.id ? 'opacity-40' : ''}`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
@@ -494,9 +678,10 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
           <WeekView
             selectedDate={selectedDate}
             setSelectedDate={handleDateChange}
-            events={monthEvents}
+            events={visibleEvents}
             onDelete={handleDelete}
             onMoveEvent={handleMoveEvent}
+            onResizeEvent={handleResizeEvent}
             startHour={weekViewRange.startHour}
             endHour={weekViewRange.endHour}
           />
@@ -509,9 +694,98 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
           <DayView
             selectedDate={selectedDate}
             setSelectedDate={handleDateChange}
-            events={monthEvents}
+            events={visibleEvents}
             onDelete={handleDelete}
           />
+        </div>
+      )}
+
+      {/* 빠른 일정 등록 모달 (더블클릭) */}
+      {quickAddDate && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => setQuickAddDate(null)}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-sm p-5 space-y-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {t('quickAddHeading')}
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  {quickAddDate.toLocaleDateString(lang === 'en' ? 'en-US' : 'ko-KR', {
+                    year: 'numeric', month: 'long', day: 'numeric',
+                  })}
+                </p>
+              </div>
+              <button
+                onClick={() => setQuickAddDate(null)}
+                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <input
+              type="text"
+              value={quickAddTitle}
+              onChange={(e) => setQuickAddTitle(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && quickAddTitle.trim()) handleQuickAdd() }}
+              placeholder={t('quickAddTitlePlaceholder')}
+              autoFocus
+              className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+            />
+
+            {/* 시간 드롭다운: 시작 ~ 종료 */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {/* 시작 시간 */}
+              <select value={qaStartAmpm} onChange={(e) => setQaStartAmpm(e.target.value)} className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-blue-500">
+                <option value="AM">{lang === 'en' ? 'AM' : '오전'}</option>
+                <option value="PM">{lang === 'en' ? 'PM' : '오후'}</option>
+              </select>
+              <select value={qaStartHour} onChange={(e) => setQaStartHour(Number(e.target.value))} className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-blue-500">
+                {[12,1,2,3,4,5,6,7,8,9,10,11].map((h) => <option key={h} value={h}>{h}</option>)}
+              </select>
+              <span className="text-gray-400 dark:text-gray-500 text-xs">:</span>
+              <select value={qaStartMin} onChange={(e) => setQaStartMin(Number(e.target.value))} className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-blue-500">
+                {[0,10,20,30,40,50].map((m) => <option key={m} value={m}>{String(m).padStart(2,'0')}</option>)}
+              </select>
+
+              <span className="text-gray-400 dark:text-gray-500 text-sm mx-1">~</span>
+
+              {/* 종료 시간 */}
+              <select value={qaEndAmpm} onChange={(e) => setQaEndAmpm(e.target.value)} className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-blue-500">
+                <option value="AM">{lang === 'en' ? 'AM' : '오전'}</option>
+                <option value="PM">{lang === 'en' ? 'PM' : '오후'}</option>
+              </select>
+              <select value={qaEndHour} onChange={(e) => setQaEndHour(Number(e.target.value))} className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-blue-500">
+                {[12,1,2,3,4,5,6,7,8,9,10,11].map((h) => <option key={h} value={h}>{h}</option>)}
+              </select>
+              <span className="text-gray-400 dark:text-gray-500 text-xs">:</span>
+              <select value={qaEndMin} onChange={(e) => setQaEndMin(Number(e.target.value))} className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-blue-500">
+                {[0,10,20,30,40,50].map((m) => <option key={m} value={m}>{String(m).padStart(2,'0')}</option>)}
+              </select>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                onClick={() => setQuickAddDate(null)}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                onClick={handleQuickAdd}
+                disabled={!quickAddTitle.trim()}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {t('quickAddSave')}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

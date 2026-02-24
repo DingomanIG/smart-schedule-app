@@ -4,7 +4,7 @@ import SEO from '../components/SEO'
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <SEO title="이용약관" description="스마트 스케줄 이용약관. 서비스 이용 조건, 이용자의 권리와 의무를 안내합니다." path="/terms" />
       <div className="max-w-2xl mx-auto px-4 py-8">
         <Link to="/" className="inline-flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline mb-6">

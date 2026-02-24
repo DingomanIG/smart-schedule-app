@@ -19,7 +19,7 @@ export default class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center px-4">
           <div className="text-center max-w-sm">
             <div className="text-4xl mb-4">⚠️</div>
             <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">

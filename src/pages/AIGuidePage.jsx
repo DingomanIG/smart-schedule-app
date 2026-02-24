@@ -86,7 +86,7 @@ export default function AIGuidePage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <SEO title="AI 스케줄링 가이드" description="AI 자연어 일정 등록의 모든 것. 똑똑한 일정 관리를 위한 완벽 가이드." path="/ai-guide" />
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">

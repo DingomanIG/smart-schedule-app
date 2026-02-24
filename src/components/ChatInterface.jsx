@@ -84,6 +84,8 @@ export default function ChatInterface({ userId, onEventCreated }) {
   const [helperState, setHelperState] = useState(null)
   const [pendingProfile, setPendingProfile] = useState(null)
   const messagesEndRef = useRef(null)
+  const confirmingRef = useRef(false)
+  const selectingDaysRef = useRef(false)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -180,6 +182,8 @@ export default function ChatInterface({ userId, onEventCreated }) {
   // === Helper: 일수 선택 → 생성 ===
   const handleSelectDays = async (days) => {
     if (!pendingProfile) return
+    if (selectingDaysRef.current) return
+    selectingDaysRef.current = true
     const profile = pendingProfile
     const isPetCare = profile._type === 'petcare'
     const isWork = profile._type === 'work'
@@ -191,17 +195,21 @@ export default function ChatInterface({ userId, onEventCreated }) {
       { role: 'assistant', content: isWork ? t('helperWorkGenerating') : isChildcare ? t('childcareGenerating') : t('helperGenerating') },
     ])
     setLoading(true)
-    if (isWork) {
-      const { _type, _tasks, ...workProfile } = profile
-      await generateAndShowWorkBatch(workProfile, _tasks, days)
-    } else if (isChildcare) {
-      const { _type, ...childInfo } = profile
-      await generateAndShowChildcareBatch(childInfo, days)
-    } else if (isPetCare) {
-      const { _type, ...petInfo } = profile
-      await generateAndShowPetCareBatch(petInfo, days)
-    } else {
-      await generateAndShowBatch(profile, days)
+    try {
+      if (isWork) {
+        const { _type, _tasks, ...workProfile } = profile
+        await generateAndShowWorkBatch(workProfile, _tasks, days)
+      } else if (isChildcare) {
+        const { _type, ...childInfo } = profile
+        await generateAndShowChildcareBatch(childInfo, days)
+      } else if (isPetCare) {
+        const { _type, ...petInfo } = profile
+        await generateAndShowPetCareBatch(petInfo, days)
+      } else {
+        await generateAndShowBatch(profile, days)
+      }
+    } finally {
+      selectingDaysRef.current = false
     }
   }
 
@@ -568,6 +576,8 @@ export default function ChatInterface({ userId, onEventCreated }) {
   const handleChildcareConfirm = async (msgIndex) => {
     const msg = messages[msgIndex]
     if (!msg.childcareEvents || msg.confirmed) return
+    if (confirmingRef.current) return
+    confirmingRef.current = true
 
     try {
       if (msg.childcareDays && msg.childcareDays.length > 1) {
@@ -592,6 +602,8 @@ export default function ChatInterface({ userId, onEventCreated }) {
         ...prev,
         { role: 'assistant', content: t('chatProcessError') },
       ])
+    } finally {
+      confirmingRef.current = false
     }
   }
 
@@ -616,16 +628,18 @@ export default function ChatInterface({ userId, onEventCreated }) {
   const handleWorkConfirm = async (msgIndex) => {
     const msg = messages[msgIndex]
     if (msg.confirmed) return
+    if (confirmingRef.current) return
+    confirmingRef.current = true
 
     try {
       if (msg.workDays && msg.workDays.length > 1) {
         for (const day of msg.workDays) {
           if (day.events.length > 0) {
-            await addBatchEvents(userId, day.events, day.date)
+            await addBatchEvents(userId, day.events, day.date, 'H04')
           }
         }
       } else if (msg.workEvents) {
-        await addBatchEvents(userId, msg.workEvents, msg.workDate)
+        await addBatchEvents(userId, msg.workEvents, msg.workDate, 'H04')
       }
       setMessages((prev) =>
         prev.map((m, i) =>
@@ -642,6 +656,8 @@ export default function ChatInterface({ userId, onEventCreated }) {
         ...prev,
         { role: 'assistant', content: t('chatProcessError') },
       ])
+    } finally {
+      confirmingRef.current = false
     }
   }
 
@@ -666,6 +682,8 @@ export default function ChatInterface({ userId, onEventCreated }) {
   const handlePetCareConfirm = async (msgIndex) => {
     const msg = messages[msgIndex]
     if (!msg.petCareEvents || msg.confirmed) return
+    if (confirmingRef.current) return
+    confirmingRef.current = true
 
     try {
       if (msg.petCareDays && msg.petCareDays.length > 1) {
@@ -690,6 +708,8 @@ export default function ChatInterface({ userId, onEventCreated }) {
         ...prev,
         { role: 'assistant', content: t('chatProcessError') },
       ])
+    } finally {
+      confirmingRef.current = false
     }
   }
 
@@ -714,6 +734,8 @@ export default function ChatInterface({ userId, onEventCreated }) {
   const handleBatchConfirm = async (msgIndex) => {
     const msg = messages[msgIndex]
     if (!msg.batchDays || msg.confirmed) return
+    if (confirmingRef.current) return
+    confirmingRef.current = true
 
     try {
       for (const day of msg.batchDays) {
@@ -736,6 +758,8 @@ export default function ChatInterface({ userId, onEventCreated }) {
         ...prev,
         { role: 'assistant', content: t('chatProcessError') },
       ])
+    } finally {
+      confirmingRef.current = false
     }
   }
 
@@ -1192,13 +1216,16 @@ export default function ChatInterface({ userId, onEventCreated }) {
               {/* 일수 선택 버튼 — select_days */}
               {msg.action === 'select_days' && !msg.answered && (
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {[1, 7, 30, 60].map((d) => (
+                  {(pendingProfile?._type === 'work'
+                    ? [{ days: 1, label: `1${t('helperDayUnit')}` }, { days: 7, label: '1주' }, { days: 14, label: '2주' }, { days: 21, label: '3주' }, { days: 30, label: t('helperMonthUnit') }]
+                    : [1, 7, 30, 60].map((d) => ({ days: d, label: `${d}${t('helperDayUnit')}` }))
+                  ).map(({ days: d, label }) => (
                     <button
                       key={d}
                       onClick={() => handleSelectDays(d)}
                       className="px-3 py-1.5 rounded-lg text-xs font-medium border border-green-300 dark:border-green-600 text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors"
                     >
-                      {d}{t('helperDayUnit')}
+                      {label}
                     </button>
                   ))}
                 </div>

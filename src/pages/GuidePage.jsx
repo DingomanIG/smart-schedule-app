@@ -27,7 +27,7 @@ export default function GuidePage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-100">
       <SEO title="사용 가이드" description="스마트 스케줄 사용법을 단계별로 안내합니다. 회원가입부터 AI 일정 등록까지 쉽게 따라하세요." path="/guide" />
       {/* Header */}
       <header className="bg-white border-b border-gray-200">

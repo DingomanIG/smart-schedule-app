@@ -39,7 +39,7 @@ export default function AuthForm({ onLogin, onRegister, onGoogleLogin }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center px-4">
       <div className="w-full max-w-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
         <div className="flex justify-end gap-2 mb-2">
           <LanguageToggle />

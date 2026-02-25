@@ -1,6 +1,10 @@
 /**
- * childcareDefaults.js - 육아 도우미(H06) 카테고리 스타일 및 월령별 기본값 데이터
+ * childcareDefaults.js - 육아 카테고리(H06) 스타일, 온보딩 스텝, GPT 프롬프트, 월령별 기본값 데이터
  */
+
+import {
+  parseTimeInput, parseChildName, parseChildBirthdate, parseChildGender,
+} from '../utils/categoryParser'
 
 // 육아 카테고리별 스타일
 export const CHILDCARE_CATEGORY_STYLES = {
@@ -90,3 +94,54 @@ export function calculateAgeMonths(birthdate) {
   const months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth())
   return Math.max(0, months)
 }
+
+// 육아 카테고리 온보딩 스텝
+export const CHILDCARE_ONBOARDING_STEPS = [
+  { key: 'childName',      askKey: 'childcareAskName',      parser: parseChildName },
+  { key: 'childBirthdate', askKey: 'childcareAskBirthdate', parser: parseChildBirthdate },
+  { key: 'childGender',    askKey: 'childcareAskGender',    parser: parseChildGender },
+  { key: 'wakeUp',         askKey: 'childcareAskWakeUp',    parser: parseTimeInput },
+]
+
+// GPT 시스템 프롬프트 템플릿 (generateChildcareSchedule용)
+export const CHILDCARE_PROMPT_TEMPLATE = `너는 육아 스케줄 전문가야.
+아이의 월령과 발달 단계를 바탕으로 하루 육아 스케줄을 JSON으로 생성해.
+
+규칙:
+- 아이 이름을 title에 포함해 (예: "하은이 아침 수유")
+- 월령에 맞는 수유/식사 횟수와 간격을 지켜
+- 낮잠 횟수와 시간을 월령에 맞춰 배치
+- 보호자 기상 시간을 기준으로 시간 배분
+- 각 항목에 예상 소요 시간(duration, 분 단위) 포함
+- category는 "육아"로 통일
+- careType은 반드시 다음 중 하나: feeding, sleep, play, bath, diaper, outing, hospital, development
+
+월령별 가이드:
+- 0~2개월(신생아): 2~3시간 간격 수유(8~12회), 16~18시간 수면, 기저귀 교체 자주
+- 3~5개월(초기 영아): 3~4시간 수유, 낮잠 3회(각 30~90분), 놀이 짧게
+- 6~8개월(이유식 시작): 이유식 1~2회 + 수유 4~5회, 낮잠 2회, 놀이 시간 증가
+- 9~11개월(이유식 중기): 이유식 3회 + 수유 2~3회, 낮잠 2회, 활발한 놀이
+- 12~17개월(돌 전후): 유아식 전환, 낮잠 1~2회, 걷기 연습
+- 18~24개월(걸음마기): 유아식 3끼 + 간식 2회, 낮잠 1회, 배변훈련 시작
+- 25~36개월(유아기): 성인 유사 식사, 낮잠 0~1회, 창의 놀이
+
+활동 배치 규칙:
+- 기상 후: 기저귀 교체 → 수유/식사 → 놀이
+- 놀이 후: 낮잠 → 기저귀 교체 → 수유/식사
+- 저녁: 목욕(1회) → 마지막 수유 → 취침
+- 놀이(play)는 하루 1회만 생성. 여러 놀이 활동이 있으면 하나의 이벤트로 통합 (예: "희영이 놀이 시간" 1개)
+- 활동 사이 5~10분 간격 유지
+- 절대 시간 겹침 금지
+- 같은 제목의 이벤트를 중복 생성하지 마세요
+- 실제 활동만 이벤트로 생성 (자유 시간은 이벤트로 만들지 않음)
+
+모든 제목은 한국어로 작성
+duration은 분 단위
+
+응답 형식 (JSON만 반환):
+{
+  "action": "childcare_batch",
+  "events": [
+    { "title": "하은이 아침 수유", "time": "07:00", "duration": 20, "category": "육아", "careType": "feeding" }
+  ]
+}`

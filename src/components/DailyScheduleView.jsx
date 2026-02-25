@@ -4,8 +4,9 @@ import {
   User, ClipboardList, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { getEvents, deleteEvent, updateEvent, addBatchEvents } from '../services/schedule'
-import { getHelperProfile, saveHelperProfile } from '../services/helperProfile'
+import { getCategoryProfile, saveCategoryProfile } from '../services/categoryProfile'
 import { CARE_TYPE_STYLES } from '../data/petCareDefaults'
+import { DAILY_CATEGORY_STYLES } from '../data/dailyDefaults'
 import { useLanguage } from '../hooks/useLanguage'
 import { Timestamp } from 'firebase/firestore'
 
@@ -19,17 +20,6 @@ const PET_CARE_TYPES = [
   { key: 'health',   icon: '🩺', label: 'health',   ko: '건강관리' },
   { key: 'medicine', icon: '💊', label: 'medicine', ko: '투약' },
 ]
-
-const CATEGORY_STYLES = {
-  routine:  'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300',
-  meal:     'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300',
-  commute:  'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
-  leisure:  'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300',
-  personal: 'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-300',
-  health:   'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-300',
-  general:  'bg-gray-100 text-gray-500 dark:bg-gray-800/50 dark:text-gray-400',
-  '펫 케어': 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-300',
-}
 
 const CATEGORY_TABS = [
   { key: 'all',      label: 'all' },
@@ -104,7 +94,7 @@ export default function DailyScheduleView({ userId, onEventCreated, petCareMode 
   const { lang, t } = useLanguage()
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
-  const [helperProfile, setHelperProfile] = useState(null)
+  const [categoryProfile, setCategoryProfile] = useState(null)
   const [showProfile, setShowProfile] = useState(false)
   const [editingProfile, setEditingProfile] = useState(false)
   const [profileDraft, setProfileDraft] = useState(null)
@@ -141,12 +131,12 @@ export default function DailyScheduleView({ userId, onEventCreated, petCareMode 
       const WORK_CATEGORIES = ['deepwork', 'meeting', 'admin', 'planning', 'communication', 'break', 'deadline']
       const helperEvents = allEvents
         .filter((evt) => {
-          if (evt.createdVia !== 'helper') return false
+          if (evt.createdVia !== 'category') return false
           const isPet = evt.category === '펫 케어'
           if (petCareMode) return isPet
           // 일상 모드: 펫 케어, 업무, 육아 이벤트 제외
-          const isWork = evt.helperId === 'H04' || WORK_CATEGORIES.includes(evt.category)
-          const isChildcare = evt.helperId === 'H06' || evt.category === '육아'
+          const isWork = evt.categoryId === 'H04' || WORK_CATEGORIES.includes(evt.category)
+          const isChildcare = evt.categoryId === 'H06' || evt.category === '육아'
           return !isPet && !isWork && !isChildcare
         })
         .sort((a, b) => {
@@ -165,7 +155,7 @@ export default function DailyScheduleView({ userId, onEventCreated, petCareMode 
   useEffect(() => { fetchEvents() }, [fetchEvents])
 
   useEffect(() => {
-    getHelperProfile(userId, petCareMode ? 'H11' : 'H01').then(setHelperProfile).catch(() => setHelperProfile(null))
+    getCategoryProfile(userId, petCareMode ? 'H11' : 'H01').then(setCategoryProfile).catch(() => setCategoryProfile(null))
   }, [userId])
 
   useEffect(() => {
@@ -173,12 +163,12 @@ export default function DailyScheduleView({ userId, onEventCreated, petCareMode 
   }, [editingGroup, editField])
 
   const startEditProfile = () => {
-    if (petCareMode && helperProfile) {
+    if (petCareMode && categoryProfile) {
       // 다중 펫 호환: pets 배열이 없으면 레거시 단일 펫에서 변환
-      const pets = helperProfile.pets || [{ petType: helperProfile.petType || 'dog', petName: helperProfile.petName || '', petAge: helperProfile.petAge || '', petSize: helperProfile.petSize || '', petIndoor: helperProfile.petIndoor ?? true }]
-      setProfileDraft({ pets, wakeUp: helperProfile.wakeUp || '07:00', simultaneous: helperProfile.simultaneous ?? true })
-    } else if (!petCareMode && (helperProfile?.preferences || helperProfile?.wakeUp)) {
-      const p = helperProfile.preferences || helperProfile
+      const pets = categoryProfile.pets || [{ petType: categoryProfile.petType || 'dog', petName: categoryProfile.petName || '', petAge: categoryProfile.petAge || '', petSize: categoryProfile.petSize || '', petIndoor: categoryProfile.petIndoor ?? true }]
+      setProfileDraft({ pets, wakeUp: categoryProfile.wakeUp || '07:00', simultaneous: categoryProfile.simultaneous ?? true })
+    } else if (!petCareMode && (categoryProfile?.preferences || categoryProfile?.wakeUp)) {
+      const p = categoryProfile.preferences || categoryProfile
       setProfileDraft({ wakeUp: p.wakeUp || '07:00', bedTime: p.bedTime || '23:00', breakfast: p.meals?.breakfast || '', lunch: p.meals?.lunch || '', dinner: p.meals?.dinner || '', commuteStart: p.commute?.startTime || '', commuteEnd: p.commute?.endTime || '', hasCommute: p.commute?.hasCommute ?? false, routines: p.routines?.join(', ') || '' })
     }
     setEditingProfile(true)
@@ -188,8 +178,8 @@ export default function DailyScheduleView({ userId, onEventCreated, petCareMode 
     if (!profileDraft) return
     try {
       if (petCareMode) {
-        await saveHelperProfile(userId, 'H11', profileDraft)
-        setHelperProfile(profileDraft)
+        await saveCategoryProfile(userId, 'H11', profileDraft)
+        setCategoryProfile(profileDraft)
       } else {
         const prefs = {
           wakeUp: profileDraft.wakeUp, bedTime: profileDraft.bedTime,
@@ -197,8 +187,8 @@ export default function DailyScheduleView({ userId, onEventCreated, petCareMode 
           commute: { hasCommute: profileDraft.hasCommute, startTime: profileDraft.commuteStart, endTime: profileDraft.commuteEnd },
           routines: profileDraft.routines ? profileDraft.routines.split(/[,、\s]+/).map(s => s.trim()).filter(Boolean) : [],
         }
-        await saveHelperProfile(userId, 'H01', prefs)
-        setHelperProfile({ preferences: prefs })
+        await saveCategoryProfile(userId, 'H01', prefs)
+        setCategoryProfile({ preferences: prefs })
       }
     } catch { /* ignore */ }
     setEditingProfile(false)
@@ -392,7 +382,7 @@ export default function DailyScheduleView({ userId, onEventCreated, petCareMode 
           ).map(({ key, label }) => {
               const style = petCareMode
                 ? (CARE_BADGE_STYLES[key] || '')
-                : (key !== 'all' && CATEGORY_STYLES[key] ? CATEGORY_STYLES[key] : '')
+                : (key !== 'all' && DAILY_CATEGORY_STYLES[key] ? DAILY_CATEGORY_STYLES[key] : '')
               return (
                 <button
                   key={key}
@@ -597,7 +587,7 @@ export default function DailyScheduleView({ userId, onEventCreated, petCareMode 
           filteredGroups.map(([titleKey, group]) => {
             const catStyle = petCareMode
               ? (CARE_BADGE_STYLES[group.careType] || CARE_BADGE_STYLES.health)
-              : (CATEGORY_STYLES[group.category] || CATEGORY_STYLES.general)
+              : (DAILY_CATEGORY_STYLES[group.category] || DAILY_CATEGORY_STYLES.general)
             const isEditing = editingGroup === titleKey
 
             // Find the most common time (majority time)
@@ -855,20 +845,20 @@ export default function DailyScheduleView({ userId, onEventCreated, petCareMode 
                 })()
               ) : (
                 <>
-                  {helperProfile ? (
+                  {categoryProfile ? (
                     (() => {
-                      const pets = helperProfile.pets || [{ petType: helperProfile.petType, petName: helperProfile.petName, petAge: helperProfile.petAge, petSize: helperProfile.petSize }]
+                      const pets = categoryProfile.pets || [{ petType: categoryProfile.petType, petName: categoryProfile.petName, petAge: categoryProfile.petAge, petSize: categoryProfile.petSize }]
                       return <>
                         {pets.map((p, i) => (
                           <p key={i}>{p.petType === 'dog' ? '🐶' : '🐱'} {p.petName} {p.petAge ? `(${p.petAge}개월)` : ''} {p.petType === 'dog' && p.petSize ? `· ${p.petSize === 'small' ? '소형' : p.petSize === 'large' ? '대형' : '중형'}` : ''}</p>
                         ))}
-                        {pets.length >= 2 && <p>동시 케어: {helperProfile.simultaneous !== false ? '함께' : '따로'}</p>}
+                        {pets.length >= 2 && <p>동시 케어: {categoryProfile.simultaneous !== false ? '함께' : '따로'}</p>}
                       </>
                     })()
                   ) : (
                     <p className="text-gray-400 dark:text-gray-500">{t('noProfile')}</p>
                   )}
-                  {helperProfile && (
+                  {categoryProfile && (
                     <button onClick={startEditProfile} className="mt-1 flex items-center gap-1 text-[11px] text-blue-500 dark:text-blue-400 hover:underline">
                       <Pencil size={10} /> 프로필 수정
                     </button>

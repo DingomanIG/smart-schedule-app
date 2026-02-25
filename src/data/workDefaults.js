@@ -1,6 +1,10 @@
 /**
- * workDefaults.js - 업무 도우미(H04) 카테고리 스타일 및 기본값 데이터
+ * workDefaults.js - 업무 카테고리(H04) 스타일, 온보딩 스텝, GPT 프롬프트 규칙
  */
+
+import {
+  parseWorkType, parseWorkHours, parseFocusPeak, parsePetIndoor,
+} from '../utils/categoryParser'
 
 // 업무 카테고리별 스타일
 export const WORK_CATEGORY_STYLES = {
@@ -108,3 +112,55 @@ export const WORK_TYPE_ADJUSTMENTS = {
     lunchFlexible: true,
   },
 }
+
+// 업무 카테고리 온보딩 스텝
+export const WORK_ONBOARDING_STEPS = [
+  { key: 'workType',       askKey: 'helperWorkAskWorkType', parser: parseWorkType },
+  { key: 'workHours',      askKey: 'helperWorkAskHours',    parser: parseWorkHours },
+  { key: 'focusPeak',      askKey: 'helperWorkAskFocus',    parser: parseFocusPeak },
+  { key: 'worksWeekends',  askKey: 'helperWorkAskWeekend',  parser: parsePetIndoor },
+]
+
+// GPT 시스템 프롬프트 규칙 (generateWorkSchedule용)
+export const WORK_PROMPT_RULES = [
+  '1. 타임블록킹 원칙 적용: 같은 종류의 작업을 묶어 컨텍스트 스위칭 최소화',
+  '2. 딥워크(집중 업무)는 사용자의 최고 집중 시간대에 우선 배치',
+  '3. 딥워크 블록은 최소 60분, 최대 120분 단위로 설계',
+  '4. 딥워크 블록 사이에 반드시 15분 이상 휴식(break) 삽입',
+  '5. "회의"나 "미팅" 키워드가 태스크에 있으면 meeting 카테고리로 배치, 전후 10분 버퍼 확보',
+  '6. 회의 직후에는 후속 정리(admin) 15분 배치',
+  '7. 마감/급한/긴급 키워드가 있으면 deadline 카테고리로, 가장 집중 시간대에 배치',
+  '8. 업무 시작 직후 "이메일/메신저 확인" (30분, admin) 배치 — 하루 1회만, 업무 시작 시 바로',
+  '9. 하루 끝에 "하루 마무리 + 내일 계획" (30분, admin) 배치',
+  '10. 근무 시간 내 모든 시간이 채워지도록 배분 (공백 없이)',
+  '11. 점심 식사는 포함하지 않음 — 사용자가 직접 관리',
+  '12. **절대 시간 겹침 금지**: 모든 이벤트의 시간이 겹치지 않도록 하세요',
+  '13. 모든 제목은 한국어로 작성',
+  '14. duration은 분 단위',
+  '15. category는 반드시 다음 중 하나: deepwork, meeting, admin, planning, communication, break, commute, deadline',
+]
+
+// GPT 카테고리 매핑 규칙
+export const WORK_CATEGORY_MAPPING = `
+사용자가 입력한 태스크에서 각 업무를 파악하고 적절한 category를 배정해:
+- 보고서/작성/개발/코딩/디자인 등 집중 업무 → deepwork
+- 회의/미팅/콜 → meeting
+- 이메일/정리/보고서 정리 → admin
+- 기획/브레인스토밍/전략 → planning
+- 1:1/소통/피드백 → communication
+- 점심/커피/산책 → break
+- 출퇴근 → commute (사무직일 때만)
+- 마감 임박/긴급 → deadline
+
+태스크가 큰 경우(2시간 이상 예상) → "블록 1", "블록 2"로 분할하여 집중 시간대에 분산 배치
+태스크에 예상 시간이 명시되면 그대로 사용, 아니면 적절히 추정`
+
+// GPT 응답 형식 템플릿
+export const WORK_RESPONSE_FORMAT = `응답 형식 (JSON만 반환):
+{
+  "action": "work_batch",
+  "events": [
+    { "title": "하루 계획 정리", "time": "09:00", "duration": 15, "category": "admin" },
+    { "title": "보고서 작성 — 딥워크 블록 1", "time": "09:15", "duration": 90, "category": "deepwork" }
+  ]
+}`

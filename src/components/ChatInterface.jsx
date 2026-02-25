@@ -2,74 +2,23 @@ import { useState, useRef, useEffect } from 'react'
 import { Send, Calendar, Clock, MapPin, Check, X, Loader2, ArrowRight, Trash2, Cake, Heart, PartyPopper } from 'lucide-react'
 import { parseSchedule, generateDailySchedule, generatePetCareSchedule, generateWorkSchedule, generateChildcareSchedule } from '../services/openai'
 import { createEvent, getEvents, moveEvent, updateEvent, deleteEvent, deleteAllEvents, addBatchEvents } from '../services/schedule'
-import { saveHelperProfile, getHelperProfile } from '../services/helperProfile'
+import { saveCategoryProfile, getCategoryProfile } from '../services/categoryProfile'
 import {
-  parseTimeInput, parseMealsInput, parseCommuteInput,
-  parseRoutinesInput, isDailyHelperTrigger, isPetCareHelperTrigger, isHelperCancel,
-  parsePetType, parsePetName, parsePetAge, parsePetSize, parsePetIndoor,
+  isDailyCategoryTrigger, isPetCareCategoryTrigger, isCategoryCancel,
+  parsePetIndoor,
   isProfileEditTrigger,
-  isWorkHelperTrigger, parseWorkType, parseWorkHours, parseFocusPeak, parseWorkTasks,
-  isChildcareHelperTrigger, parseChildName, parseChildBirthdate, parseChildGender,
-} from '../utils/helperParser'
+  isWorkCategoryTrigger, parseWorkTasks,
+  isChildcareCategoryTrigger,
+} from '../utils/categoryParser'
 import BatchConfirmCard from './BatchConfirmCard'
 import PetCareCard from './PetCareCard'
 import WorkScheduleCard from './WorkScheduleCard'
 import ChildcareCard from './ChildcareCard'
 import { calculateAgeMonths, getChildAgeGroup, AGE_GROUPS } from '../data/childcareDefaults'
-import HelperSelector from './HelperSelector'
+import { PET_SINGLE_STEPS, PET_FINAL_STEPS } from '../data/petCareDefaults'
+import { getOnboardingSteps } from '../data/categoryRegistry'
+import CategorySelector from './CategorySelector'
 import { useLanguage } from '../hooks/useLanguage'
-
-const ONBOARDING_STEPS = [
-  { key: 'wakeUp',   askKey: 'helperAskWakeUp',   parser: parseTimeInput },
-  { key: 'bedTime',  askKey: 'helperAskBedTime',   parser: parseTimeInput },
-  { key: 'meals',    askKey: 'helperAskMeals',     parser: parseMealsInput },
-  { key: 'commute',  askKey: 'helperAskCommute',   parser: parseCommuteInput },
-  { key: 'routines', askKey: 'helperAskRoutines',  parser: parseRoutinesInput },
-]
-
-// 반려동물 1마리 정보 수집 스텝
-const PET_SINGLE_STEPS = [
-  { key: 'petType',   askKey: 'petCareAskType',    parser: parsePetType },
-  { key: 'petName',   askKey: 'petCareAskName',    parser: parsePetName },
-  { key: 'petAge',    askKey: 'petCareAskAge',     parser: parsePetAge },
-  { key: 'petSize',   askKey: 'petCareAskSize',    parser: parsePetSize, skipIf: (a) => a._currentPet?.petType !== 'dog' },
-  { key: 'petIndoor', askKey: 'petCareAskIndoor',  parser: parsePetIndoor },
-]
-
-// 마지막 공통 질문 스텝
-const PET_FINAL_STEPS = [
-  { key: 'wakeUp',       askKey: 'petCareAskWakeUp',       parser: parseTimeInput },
-  { key: 'simultaneous', askKey: 'petCareAskSimultaneous',  parser: parsePetIndoor, skipIf: (a) => (a.pets || []).length < 2 },
-]
-
-// 레거시 호환용
-const PET_ONBOARDING_STEPS = [
-  ...PET_SINGLE_STEPS,
-  { key: 'wakeUp', askKey: 'petCareAskWakeUp', parser: parseTimeInput },
-]
-
-// 업무 도우미 프로필 수집 스텝
-const WORK_ONBOARDING_STEPS = [
-  { key: 'workType',       askKey: 'helperWorkAskWorkType', parser: parseWorkType },
-  { key: 'workHours',      askKey: 'helperWorkAskHours',    parser: parseWorkHours },
-  { key: 'focusPeak',      askKey: 'helperWorkAskFocus',    parser: parseFocusPeak },
-  { key: 'worksWeekends',  askKey: 'helperWorkAskWeekend',  parser: parsePetIndoor },
-]
-
-// 육아 도우미 프로필 수집 스텝
-const CHILDCARE_ONBOARDING_STEPS = [
-  { key: 'childName',      askKey: 'childcareAskName',      parser: parseChildName },
-  { key: 'childBirthdate', askKey: 'childcareAskBirthdate', parser: parseChildBirthdate },
-  { key: 'childGender',    askKey: 'childcareAskGender',    parser: parseChildGender },
-  { key: 'wakeUp',         askKey: 'childcareAskWakeUp',    parser: parseTimeInput },
-]
-
-function getOnboardingSteps(type) {
-  if (type === 'petcare') return PET_ONBOARDING_STEPS
-  if (type === 'work') return WORK_ONBOARDING_STEPS
-  if (type === 'childcare') return CHILDCARE_ONBOARDING_STEPS
-  return ONBOARDING_STEPS
-}
 
 export default function ChatInterface({ userId, onEventCreated }) {
   const { t } = useLanguage()
@@ -81,7 +30,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [lastEventContext, setLastEventContext] = useState(null)
-  const [helperState, setHelperState] = useState(null)
+  const [categoryState, setCategoryState] = useState(null)
   const [pendingProfile, setPendingProfile] = useState(null)
   const messagesEndRef = useRef(null)
   const confirmingRef = useRef(false)
@@ -104,10 +53,10 @@ export default function ChatInterface({ userId, onEventCreated }) {
     }
   }
 
-  // === Helper: 온보딩 시작 ===
-  const startHelperOnboarding = (type) => {
+  // === Category: 온보딩 시작 ===
+  const startCategoryOnboarding = (type) => {
     const steps = getOnboardingSteps(type)
-    setHelperState({ type, step: 0, answers: {} })
+    setCategoryState({ type, step: 0, answers: {} })
     const startMsg = type === 'petcare' ? t('petCareStart') : type === 'work' ? t('helperWorkStart') : type === 'childcare' ? t('childcareStart') : t('helperStart')
     setMessages((prev) => [
       ...prev,
@@ -115,14 +64,14 @@ export default function ChatInterface({ userId, onEventCreated }) {
     ])
   }
 
-  // === Helper: 시작 (프로필 확인 → 온보딩 or 일수 선택/바로 생성) ===
-  const handleStartHelper = async (type) => {
+  // === Category: 시작 (프로필 확인 → 온보딩 or 일수 선택/바로 생성) ===
+  const handleStartCategory = async (type) => {
     if (type !== 'daily' && type !== 'petcare' && type !== 'work' && type !== 'childcare') return
 
     setLoading(true)
     try {
       if (type === 'childcare') {
-        const existingProfile = await getHelperProfile(userId, 'H06')
+        const existingProfile = await getCategoryProfile(userId, 'H06')
         if (existingProfile) {
           const ageMonths = calculateAgeMonths(existingProfile.childBirthdate)
           const ageGroupKey = getChildAgeGroup(ageMonths)
@@ -133,10 +82,10 @@ export default function ChatInterface({ userId, onEventCreated }) {
             { role: 'assistant', content: `${t('childcareProfileFound')} ${existingProfile.childName} (${ageMonths}${t('childcareMonthUnit')}, ${ageGroup?.label})\n${t('helperAskDays')}`, action: 'select_days' },
           ])
         } else {
-          startHelperOnboarding(type)
+          startCategoryOnboarding(type)
         }
       } else if (type === 'work') {
-        const existingProfile = await getHelperProfile(userId, 'H04')
+        const existingProfile = await getCategoryProfile(userId, 'H04')
         if (existingProfile) {
           setPendingProfile({ _type: 'work', ...existingProfile })
           setMessages((prev) => [
@@ -144,10 +93,10 @@ export default function ChatInterface({ userId, onEventCreated }) {
             { role: 'assistant', content: `${t('helperWorkProfileFound')}\n${t('helperWorkAskTasks')}`, action: 'work_ask_tasks' },
           ])
         } else {
-          startHelperOnboarding(type)
+          startCategoryOnboarding(type)
         }
       } else if (type === 'daily') {
-        const existingProfile = await getHelperProfile(userId, 'H01')
+        const existingProfile = await getCategoryProfile(userId, 'H01')
         if (existingProfile) {
           setPendingProfile(existingProfile)
           setMessages((prev) => [
@@ -155,10 +104,10 @@ export default function ChatInterface({ userId, onEventCreated }) {
             { role: 'assistant', content: t('helperAskDays'), action: 'select_days' },
           ])
         } else {
-          startHelperOnboarding(type)
+          startCategoryOnboarding(type)
         }
       } else if (type === 'petcare') {
-        const existingProfile = await getHelperProfile(userId, 'H11')
+        const existingProfile = await getCategoryProfile(userId, 'H11')
         if (existingProfile) {
           // 기존 프로필 → 일수 선택
           const pets = existingProfile.pets || [{ petType: existingProfile.petType, petName: existingProfile.petName, petAge: existingProfile.petAge, petSize: existingProfile.petSize, petIndoor: existingProfile.petIndoor }]
@@ -169,17 +118,17 @@ export default function ChatInterface({ userId, onEventCreated }) {
             { role: 'assistant', content: `${t('petCareProfileFound')} ${petSummary}\n${t('helperAskDays')}`, action: 'select_days' },
           ])
         } else {
-          startHelperOnboarding(type)
+          startCategoryOnboarding(type)
         }
       }
     } catch {
-      startHelperOnboarding(type)
+      startCategoryOnboarding(type)
     } finally {
       setLoading(false)
     }
   }
 
-  // === Helper: 일수 선택 → 생성 ===
+  // === Category: 일수 선택 → 생성 ===
   const handleSelectDays = async (days) => {
     if (!pendingProfile) return
     if (selectingDaysRef.current) return
@@ -225,12 +174,12 @@ export default function ChatInterface({ userId, onEventCreated }) {
     return null
   }
 
-  // === Helper: 온보딩 답변 처리 ===
-  const processHelperAnswer = async (text) => {
+  // === Category: 온보딩 답변 처리 ===
+  const processCategoryAnswer = async (text) => {
     // 취소 체크
-    if (isHelperCancel(text)) {
-      setHelperState(null)
-      const cancelMsg = helperState.type === 'petcare' ? t('petCareCancelled') : helperState.type === 'work' ? t('helperWorkCancelled') : helperState.type === 'childcare' ? t('childcareCancelled') : t('helperCancelled')
+    if (isCategoryCancel(text)) {
+      setCategoryState(null)
+      const cancelMsg = categoryState.type === 'petcare' ? t('petCareCancelled') : categoryState.type === 'work' ? t('helperWorkCancelled') : categoryState.type === 'childcare' ? t('childcareCancelled') : t('helperCancelled')
       setMessages((prev) => [
         ...prev,
         { role: 'assistant', content: cancelMsg },
@@ -239,7 +188,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
       return
     }
 
-    const { type, step, answers } = helperState
+    const { type, step, answers } = categoryState
 
     // === 펫 케어 다중 펫 온보딩 ===
     if (type === 'petcare') {
@@ -256,7 +205,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
           const nextPetStep = petStep + 1
           if (nextPetStep < PET_SINGLE_STEPS.length) {
             const nextDef = PET_SINGLE_STEPS[nextPetStep]
-            setHelperState({ ...helperState, answers: { ...answers, _petStep: nextPetStep } })
+            setCategoryState({ ...categoryState, answers: { ...answers, _petStep: nextPetStep } })
             setMessages(prev => [...prev, { role: 'assistant', content: `${t(nextDef.askKey)}\n${t('helperCancelHint')}` }])
           }
           setLoading(false)
@@ -279,13 +228,13 @@ export default function ChatInterface({ userId, onEventCreated }) {
         }
 
         if (nextPetStep < PET_SINGLE_STEPS.length) {
-          setHelperState({ ...helperState, answers: { ...answers, _currentPet: updatedPet, _petStep: nextPetStep } })
+          setCategoryState({ ...categoryState, answers: { ...answers, _currentPet: updatedPet, _petStep: nextPetStep } })
           setMessages(prev => [...prev, { role: 'assistant', content: `${t(PET_SINGLE_STEPS[nextPetStep].askKey)}\n${t('helperCancelHint')}` }])
           setLoading(false)
         } else {
           // 이 펫 완료 → "더 있나요?" 질문
           const newPets = [...pets, updatedPet]
-          setHelperState({ ...helperState, answers: { ...answers, pets: newPets, _currentPet: {}, _petStep: 0, _phase: 'ask_more' } })
+          setCategoryState({ ...categoryState, answers: { ...answers, pets: newPets, _currentPet: {}, _petStep: 0, _phase: 'ask_more' } })
           const petSummary = newPets.map(p => `${p.petName}(${p.petType === 'dog' ? '🐶' : '🐱'})`).join(', ')
           setMessages(prev => [...prev, { role: 'assistant', content: `✅ ${updatedPet.petName} 등록 완료! (현재: ${petSummary})\n\n${t('petCareAskMorePets')}\n${t('helperCancelHint')}` }])
           setLoading(false)
@@ -302,14 +251,14 @@ export default function ChatInterface({ userId, onEventCreated }) {
         }
         if (yesNo) {
           // 추가 펫 → pet_info 처음으로
-          setHelperState({ ...helperState, answers: { ...answers, _phase: 'pet_info', _petStep: 0, _currentPet: {} } })
+          setCategoryState({ ...categoryState, answers: { ...answers, _phase: 'pet_info', _petStep: 0, _currentPet: {} } })
           setMessages(prev => [...prev, { role: 'assistant', content: `${t('petCareAskType')}\n${t('helperCancelHint')}` }])
           setLoading(false)
         } else {
           // 펫 추가 끝 → final 질문
           const finalSteps = PET_FINAL_STEPS.filter(s => !s.skipIf?.(answers))
           if (finalSteps.length > 0) {
-            setHelperState({ ...helperState, answers: { ...answers, _phase: 'final', _finalStep: 0 } })
+            setCategoryState({ ...categoryState, answers: { ...answers, _phase: 'final', _finalStep: 0 } })
             setMessages(prev => [...prev, { role: 'assistant', content: `${t(finalSteps[0].askKey)}\n${t('helperCancelHint')}` }])
             setLoading(false)
           } else {
@@ -333,7 +282,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
         const newAnswers = { ...answers, [currentFinal.key]: parsed }
         const nextFIdx = fIdx + 1
         if (nextFIdx < finalSteps.length) {
-          setHelperState({ ...helperState, answers: { ...newAnswers, _finalStep: nextFIdx } })
+          setCategoryState({ ...categoryState, answers: { ...newAnswers, _finalStep: nextFIdx } })
           setMessages(prev => [...prev, { role: 'assistant', content: `${t(finalSteps[nextFIdx].askKey)}\n${t('helperCancelHint')}` }])
           setLoading(false)
         } else {
@@ -343,7 +292,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
       }
     }
 
-    // === 일상/업무 도우미 (기존 로직) ===
+    // === 일상/업무 카테고리 (기존 로직) ===
     const steps = getOnboardingSteps(type)
     const currentStep = steps[step]
 
@@ -370,32 +319,32 @@ export default function ChatInterface({ userId, onEventCreated }) {
     }
 
     if (nextStep < steps.length) {
-      setHelperState({ ...helperState, step: nextStep, answers: newAnswers })
+      setCategoryState({ ...categoryState, step: nextStep, answers: newAnswers })
       setMessages(prev => [...prev, { role: 'assistant', content: `${t(steps[nextStep].askKey)}\n${t('helperCancelHint')}` }])
       setLoading(false)
     } else if (type === 'childcare') {
-      // 육아 도우미 온보딩 완료: 프로필 저장 + 일수 선택
-      setHelperState(null)
+      // 육아 카테고리 온보딩 완료: 프로필 저장 + 일수 선택
+      setCategoryState(null)
       try {
-        await saveHelperProfile(userId, 'H06', newAnswers)
+        await saveCategoryProfile(userId, 'H06', newAnswers)
       } catch { /* 데모 모드 */ }
       setPendingProfile({ _type: 'childcare', ...newAnswers })
       setMessages(prev => [...prev, { role: 'assistant', content: t('helperAskDays'), action: 'select_days' }])
       setLoading(false)
     } else if (type === 'work') {
-      // 업무 도우미 온보딩 완료: 프로필 저장 + 태스크 입력 요청
-      setHelperState(null)
+      // 업무 카테고리 온보딩 완료: 프로필 저장 + 태스크 입력 요청
+      setCategoryState(null)
       try {
-        await saveHelperProfile(userId, 'H04', newAnswers)
+        await saveCategoryProfile(userId, 'H04', newAnswers)
       } catch { /* 데모 모드 */ }
       setPendingProfile({ _type: 'work', ...newAnswers })
       setMessages(prev => [...prev, { role: 'assistant', content: t('helperWorkAskTasks'), action: 'work_ask_tasks' }])
       setLoading(false)
     } else {
-      // 일상 도우미 온보딩 완료: 프로필 저장 + 일수 선택
-      setHelperState(null)
+      // 일상 카테고리 온보딩 완료: 프로필 저장 + 일수 선택
+      setCategoryState(null)
       try {
-        await saveHelperProfile(userId, 'H01', newAnswers)
+        await saveCategoryProfile(userId, 'H01', newAnswers)
       } catch { /* 데모 모드 */ }
       setPendingProfile(newAnswers)
       setMessages(prev => [...prev, { role: 'assistant', content: t('helperAskDays'), action: 'select_days' }])
@@ -405,18 +354,18 @@ export default function ChatInterface({ userId, onEventCreated }) {
 
   // === 펫 케어 온보딩 완료 처리 ===
   const finishPetOnboarding = async (answers) => {
-    setHelperState(null)
+    setCategoryState(null)
     // 내부 상태 키 제거 후 저장
     const { _phase, _petStep, _currentPet, _finalStep, ...profileData } = answers
     try {
-      await saveHelperProfile(userId, 'H11', profileData)
+      await saveCategoryProfile(userId, 'H11', profileData)
     } catch { /* 데모 모드 */ }
     setPendingProfile({ _type: 'petcare', ...profileData })
     setMessages(prev => [...prev, { role: 'assistant', content: t('helperAskDays'), action: 'select_days' }])
     setLoading(false)
   }
 
-  // === Helper: GPT 스케줄 생성 + 배치 카드 표시 (멀티데이) ===
+  // === Category: GPT 스케줄 생성 + 배치 카드 표시 (멀티데이) ===
   const generateAndShowBatch = async (preferences, days = 1) => {
     try {
       const result = await generateDailySchedule(preferences)
@@ -730,7 +679,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
     )
   }
 
-  // === Helper: 배치 전체 등록 (멀티데이) ===
+  // === Category: 배치 전체 등록 (멀티데이) ===
   const handleBatchConfirm = async (msgIndex) => {
     const msg = messages[msgIndex]
     if (!msg.batchDays || msg.confirmed) return
@@ -763,7 +712,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
     }
   }
 
-  // === Helper: 배치 개별 항목 제거 (템플릿 기반 — 모든 날짜에서 동일 인덱스 제거) ===
+  // === Category: 배치 개별 항목 제거 (템플릿 기반 — 모든 날짜에서 동일 인덱스 제거) ===
   const handleBatchRemoveItem = (msgIndex, dayIdx, eventIdx) => {
     setMessages((prev) =>
       prev.map((m, i) => {
@@ -777,7 +726,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
     )
   }
 
-  // === 기존: handleSend (도우미 인터셉트 추가) ===
+  // === 기존: handleSend (카테고리 인터셉트 추가) ===
   const handleSend = async () => {
     if (!input.trim() || loading) return
 
@@ -789,14 +738,14 @@ export default function ChatInterface({ userId, onEventCreated }) {
 
     try {
       // 1. 온보딩 진행 중이면 인터셉트
-      if (helperState !== null) {
-        await processHelperAnswer(currentInput)
+      if (categoryState !== null) {
+        await processCategoryAnswer(currentInput)
         return
       }
 
       // 1.5. 일수 선택 또는 업무 태스크 대기 중이면 인터셉트
       if (pendingProfile) {
-        // 업무 도우미: 태스크 입력 대기 (아직 _tasks가 없을 때)
+        // 업무 카테고리: 태스크 입력 대기 (아직 _tasks가 없을 때)
         if (pendingProfile._type === 'work' && !pendingProfile._tasks) {
           const tasks = parseWorkTasks(currentInput)
           if (tasks) {
@@ -872,25 +821,25 @@ export default function ChatInterface({ userId, onEventCreated }) {
           ...prev,
           { role: 'assistant', content: editMsg },
         ])
-        await handleStartHelper(type)
+        await handleStartCategory(type)
         return
       }
 
-      // 3. 도우미 트리거 감지
-      if (isPetCareHelperTrigger(currentInput)) {
-        await handleStartHelper('petcare')
+      // 3. 카테고리 트리거 감지
+      if (isPetCareCategoryTrigger(currentInput)) {
+        await handleStartCategory('petcare')
         return
       }
-      if (isChildcareHelperTrigger(currentInput)) {
-        await handleStartHelper('childcare')
+      if (isChildcareCategoryTrigger(currentInput)) {
+        await handleStartCategory('childcare')
         return
       }
-      if (isWorkHelperTrigger(currentInput)) {
-        await handleStartHelper('work')
+      if (isWorkCategoryTrigger(currentInput)) {
+        await handleStartCategory('work')
         return
       }
-      if (isDailyHelperTrigger(currentInput)) {
-        await handleStartHelper('daily')
+      if (isDailyCategoryTrigger(currentInput)) {
+        await handleStartCategory('daily')
         return
       }
 
@@ -1086,7 +1035,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
         ])
       } else if (action === 'add_major_event') {
         const p = msg.parsed
-        const profile = await getHelperProfile(userId, 'H12') || { birthdays: [], anniversaries: [], events: [] }
+        const profile = await getCategoryProfile(userId, 'H12') || { birthdays: [], anniversaries: [], events: [] }
         const newItem = { id: Date.now().toString(), name: p.name, memo: p.memo || '' }
 
         if (p.majorEventType === 'birthday') {
@@ -1102,7 +1051,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
           profile.events = [...(profile.events || []), newItem]
         }
 
-        await saveHelperProfile(userId, 'H12', profile)
+        await saveCategoryProfile(userId, 'H12', profile)
         markConfirmed()
         setMessages((prev) => [
           ...prev,
@@ -1433,7 +1382,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
           <div className="flex justify-start">
             <div className="bg-gray-100 dark:bg-gray-700 px-4 py-2.5 rounded-[2px_14px_14px_14px] text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
               <Loader2 size={14} className="animate-spin" />
-              {helperState !== null ? t('helperGenerating') : t('analyzing')}
+              {categoryState !== null ? t('helperGenerating') : t('analyzing')}
             </div>
           </div>
         )}
@@ -1444,7 +1393,7 @@ export default function ChatInterface({ userId, onEventCreated }) {
       {/* 입력창 */}
       <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3 bg-white dark:bg-gray-800">
         <div className="flex items-center gap-2">
-          <HelperSelector onSelectHelper={handleStartHelper} disabled={loading} />
+          <CategorySelector onSelectCategory={handleStartCategory} disabled={loading} />
           <input
             type="text"
             value={input}

@@ -1,5 +1,9 @@
 import { parseDateFromText } from '../utils/dateParser.js'
 import { auth } from './firebase.js'
+import { DAILY_PROMPT_RULES, DAILY_RESPONSE_FORMAT } from '../data/dailyDefaults.js'
+import { PET_CARE_PROMPT_TEMPLATE } from '../data/petCareDefaults.js'
+import { WORK_PROMPT_RULES, WORK_CATEGORY_MAPPING, WORK_RESPONSE_FORMAT } from '../data/workDefaults.js'
+import { CHILDCARE_PROMPT_TEMPLATE } from '../data/childcareDefaults.js'
 
 const isDev = import.meta.env.DEV
 
@@ -254,33 +258,11 @@ export async function generateDailySchedule(preferences) {
 사용자의 생활 패턴을 바탕으로 하루 일정을 JSON으로 생성하세요.
 
 규칙:
-1. 별도의 "기상"/"취침" 이벤트 대신, 마지막에 "수면" 이벤트 1개를 포함하세요. 시작 시간=취침 시간, duration=취침~기상까지 분(예: 23:00~08:00이면 540분)
-2. 반드시 아침 식사, 점심 식사, 저녁 식사 3끼를 포함하세요 (사용자가 불규칙이라고 하지 않는 한)
-3. 실제 활동만 이벤트로 생성 (자유 시간, 여가 시간, 휴식 등 빈 시간은 이벤트로 만들지 않음)
-4. 식사 시간 최소 30분 확보
-5. 출퇴근이 있으면: 출근 준비(30분) + 출근 + 업무 시간 + 퇴근 포함
-6. 루틴 배치 규칙:
-   - 운동 → 출근 전 또는 퇴근 후
-   - 독서 → 저녁/취침 전
-   - 명상 → 기상 직후 또는 취침 전
-   - 기타 루틴 → 빈 시간에 자연스럽게 배치
-7. 활동 사이 10~15분 버퍼 (이동/준비 시간, 이벤트로 만들지 않음)
-8. "자유 시간", "여가", "휴식" 같은 빈 시간은 절대 이벤트로 만들지 마세요
-9. category는 반드시 다음 중 하나: routine, meal, commute, personal, health
-10. personal 카테고리는 하루 1개만, 같은 루틴도 1회만 배치
-11. 모든 제목은 한국어로 작성
-12. duration은 분 단위
-13. **절대 시간 겹침 금지**: 모든 이벤트는 이전 이벤트의 종료 시간(시작시간+duration) 이후에 시작해야 합니다. 예를 들어 운동이 08:00~09:00이면 아침 식사는 09:10 이후에 배치하세요. 이벤트를 시간순으로 정렬하고 겹치지 않는지 반드시 확인하세요.
+${DAILY_PROMPT_RULES.join('\n')}
 
 오늘 날짜: ${today}
 
-응답 형식 (JSON만 반환):
-{
-  "action": "create_batch",
-  "events": [
-    { "title": "수면", "time": "23:00", "duration": 540, "category": "routine" }
-  ]
-}`,
+${DAILY_RESPONSE_FORMAT}`,
       },
       {
         role: 'user',
@@ -348,50 +330,7 @@ ${pets.length > 1 ? `\n동시 케어: ${simultaneous ? '예 (같은 시간에 �
     messages: [
       {
         role: 'system',
-        content: `너는 반려동물 돌봄 스케줄 전문가야.
-반려동물 정보를 바탕으로 하루 돌봄 스케줄을 JSON으로 생성해.
-
-규칙:
-- 동물 종류(강아지/고양이)에 맞는 돌봄 항목 생성
-- 나이(개월 수)에 따라 밥 횟수, 산책 시간, 놀이 강도 조절
-- 보호자 기상 시간을 기준으로 시간 배분
-- 각 항목에 예상 소요 시간(duration, 분 단위) 포함
-- 반려동물 이름을 title에 포함
-- category는 "펫 케어"로 통일
-- careType은 반드시 다음 중 하나: feeding, water, walk, toilet, play, grooming, health, vet, medicine
-- title에 아이콘 붙이지 말고 반려동물 이름과 케어 이름만 사용 (예: "미루 아침 밥 주기")
-
-다중 반려동물 규칙:
-- 여러 마리일 경우 각 반려동물 이름을 title에 명시
-- "동시 케어: 예"이면 같은 종류의 케어를 같은 시간에 묶어서 생성 (예: "미루&보리 아침 밥 주기")
-- "동시 케어: 아니오"이면 각 반려동물 별로 따로 시간을 배정 (겹치지 않게)
-
-강아지 필수 항목: 밥(2회, 아기면 3~4회), 산책(2회), 놀이(1~2회)
-강아지 선택 항목: 배변 패드 교체(실내견), 양치질, 빗질
-강아지 크기별 산책: 소형 20분, 중형 30분, 대형 40분+
-강아지 아기(0~6개월): 짧은 산책 10~15분, 밥 3~4회, 짧은 놀이
-강아지 노령(7년+): 짧은 산책 20분, 부드러운 놀이
-
-고양이 필수 항목: 밥(2회, 아기면 3~4회), 물 갈아주기, 화장실 청소(1~2회), 놀이(1~2회)
-고양이 선택 항목: 빗질(주 3회), 귀 청소, 발톱
-고양이 아기(0~6개월): 밥 3~4회, 짧고 자주 놀아주기
-고양이 노령(10년+): 밥 2~3회 소량, 부드러운 놀이
-
-시간 배치 규칙:
-- 기상 직후: 밥 주기 + 산책(강아지) 또는 밥 + 물 + 화장실(고양이)
-- 오전~오후: 놀이, 간식
-- 저녁: 밥 + 산책(강아지) 또는 밥 + 물 + 화장실(고양이) + 놀이
-- 밤: 양치질, 빗질 등 관리
-- 활동 간 5~10분 간격 유지
-- 절대 시간 겹침 금지
-
-응답 형식 (JSON만 반환):
-{
-  "action": "petcare_batch",
-  "events": [
-    { "title": "🍽️ 초코 아침 밥 주기", "time": "07:00", "duration": 10, "category": "펫 케어", "careType": "feeding" }
-  ]
-}`,
+        content: PET_CARE_PROMPT_TEMPLATE,
       },
       {
         role: 'user',
@@ -466,45 +405,11 @@ export async function generateWorkSchedule(profile, tasks) {
 사용자의 근무 환경과 태스크 목록을 바탕으로 최적의 하루 업무 스케줄을 JSON으로 생성해.
 
 규칙:
-1. 타임블록킹 원칙 적용: 같은 종류의 작업을 묶어 컨텍스트 스위칭 최소화
-2. 딥워크(집중 업무)는 사용자의 최고 집중 시간대에 우선 배치
-3. 딥워크 블록은 최소 60분, 최대 120분 단위로 설계
-4. 딥워크 블록 사이에 반드시 15분 이상 휴식(break) 삽입
-5. "회의"나 "미팅" 키워드가 태스크에 있으면 meeting 카테고리로 배치, 전후 10분 버퍼 확보
-6. 회의 직후에는 후속 정리(admin) 15분 배치
-7. 마감/급한/긴급 키워드가 있으면 deadline 카테고리로, 가장 집중 시간대에 배치
-8. 업무 시작 직후 "이메일/메신저 확인" (30분, admin) 배치 — 하루 1회만, 업무 시작 시 바로
-9. 하루 끝에 "하루 마무리 + 내일 계획" (30분, admin) 배치
-10. 근무 시간 내 모든 시간이 채워지도록 배분 (공백 없이)
-11. 점심 식사는 포함하지 않음 — 사용자가 직접 관리
-12. **절대 시간 겹침 금지**: 모든 이벤트의 시간이 겹치지 않도록 하세요
-13. 모든 제목은 한국어로 작성
-14. duration은 분 단위
-15. category는 반드시 다음 중 하나: deepwork, meeting, admin, planning, communication, break, commute, deadline
-
-사용자가 입력한 태스크에서 각 업무를 파악하고 적절한 category를 배정해:
-- 보고서/작성/개발/코딩/디자인 등 집중 업무 → deepwork
-- 회의/미팅/콜 → meeting
-- 이메일/정리/보고서 정리 → admin
-- 기획/브레인스토밍/전략 → planning
-- 1:1/소통/피드백 → communication
-- 점심/커피/산책 → break
-- 출퇴근 → commute (사무직일 때만)
-- 마감 임박/긴급 → deadline
-
-태스크가 큰 경우(2시간 이상 예상) → "블록 1", "블록 2"로 분할하여 집중 시간대에 분산 배치
-태스크에 예상 시간이 명시되면 그대로 사용, 아니면 적절히 추정
-
+${WORK_PROMPT_RULES.join('\n')}
+${WORK_CATEGORY_MAPPING}
 오늘 날짜: ${today}
 
-응답 형식 (JSON만 반환):
-{
-  "action": "work_batch",
-  "events": [
-    { "title": "하루 계획 정리", "time": "09:00", "duration": 15, "category": "admin" },
-    { "title": "보고서 작성 — 딥워크 블록 1", "time": "09:15", "duration": 90, "category": "deepwork" }
-  ]
-}`,
+${WORK_RESPONSE_FORMAT}`,
       },
       {
         role: 'user',
@@ -565,47 +470,7 @@ export async function generateChildcareSchedule(childInfo) {
     messages: [
       {
         role: 'system',
-        content: `너는 육아 스케줄 전문가야.
-아이의 월령과 발달 단계를 바탕으로 하루 육아 스케줄을 JSON으로 생성해.
-
-규칙:
-- 아이 이름을 title에 포함해 (예: "하은이 아침 수유")
-- 월령에 맞는 수유/식사 횟수와 간격을 지켜
-- 낮잠 횟수와 시간을 월령에 맞춰 배치
-- 보호자 기상 시간을 기준으로 시간 배분
-- 각 항목에 예상 소요 시간(duration, 분 단위) 포함
-- category는 "육아"로 통일
-- careType은 반드시 다음 중 하나: feeding, sleep, play, bath, diaper, outing, hospital, development
-
-월령별 가이드:
-- 0~2개월(신생아): 2~3시간 간격 수유(8~12회), 16~18시간 수면, 기저귀 교체 자주
-- 3~5개월(초기 영아): 3~4시간 수유, 낮잠 3회(각 30~90분), 놀이 짧게
-- 6~8개월(이유식 시작): 이유식 1~2회 + 수유 4~5회, 낮잠 2회, 놀이 시간 증가
-- 9~11개월(이유식 중기): 이유식 3회 + 수유 2~3회, 낮잠 2회, 활발한 놀이
-- 12~17개월(돌 전후): 유아식 전환, 낮잠 1~2회, 걷기 연습
-- 18~24개월(걸음마기): 유아식 3끼 + 간식 2회, 낮잠 1회, 배변훈련 시작
-- 25~36개월(유아기): 성인 유사 식사, 낮잠 0~1회, 창의 놀이
-
-활동 배치 규칙:
-- 기상 후: 기저귀 교체 → 수유/식사 → 놀이
-- 놀이 후: 낮잠 → 기저귀 교체 → 수유/식사
-- 저녁: 목욕(1회) → 마지막 수유 → 취침
-- 놀이(play)는 하루 1회만 생성. 여러 놀이 활동이 있으면 하나의 이벤트로 통합 (예: "희영이 놀이 시간" 1개)
-- 활동 사이 5~10분 간격 유지
-- 절대 시간 겹침 금지
-- 같은 제목의 이벤트를 중복 생성하지 마세요
-- 실제 활동만 이벤트로 생성 (자유 시간은 이벤트로 만들지 않음)
-
-모든 제목은 한국어로 작성
-duration은 분 단위
-
-응답 형식 (JSON만 반환):
-{
-  "action": "childcare_batch",
-  "events": [
-    { "title": "하은이 아침 수유", "time": "07:00", "duration": 20, "category": "육아", "careType": "feeding" }
-  ]
-}`,
+        content: CHILDCARE_PROMPT_TEMPLATE,
       },
       {
         role: 'user',

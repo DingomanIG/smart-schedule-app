@@ -1,14 +1,6 @@
 import { Check, X, Calendar, Clock, Minus, Copy } from 'lucide-react'
 import { useLanguage } from '../hooks/useLanguage'
-
-const CATEGORY_STYLES = {
-  routine:  'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300',
-  meal:     'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300',
-  commute:  'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
-  leisure:  'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300',
-  personal: 'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-300',
-  health:   'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-300',
-}
+import { DAILY_CATEGORY_STYLES } from '../data/dailyDefaults'
 
 export default function BatchConfirmCard({
   batchDays = [],
@@ -102,7 +94,7 @@ export default function BatchConfirmCard({
               <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">
                 {event.duration}{t('minuteUnit')}
               </span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${CATEGORY_STYLES[event.category] || CATEGORY_STYLES.personal}`}>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${DAILY_CATEGORY_STYLES[event.category] || DAILY_CATEGORY_STYLES.personal}`}>
                 {event.category}
               </span>
             </div>

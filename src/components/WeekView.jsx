@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronLeft, ChevronRight, Clock, MapPin, Trash2, X } from 'lucide-react'
 import { getEventSource } from '../utils/eventClassifier'
 
@@ -163,6 +164,8 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
   const fullHours = Array.from({ length: totalHours + 1 }, (_, i) => i + startHour)
   const HOUR_HEIGHT = 48
   const [popup, setPopup] = useState(null)
+  const popupRef = useRef(null)
+  const [popupStyle, setPopupStyle] = useState({})
   const [dropTargetCol, setDropTargetCol] = useState(null)
   const [dropTimeIndicator, setDropTimeIndicator] = useState(null)
   const isDraggingRef = useRef(false)
@@ -181,10 +184,41 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
         onDelete(popup.id)
         setPopup(null)
       }
+      if (e.key === 'Escape' && popup) {
+        setPopup(null)
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [popup, onDelete])
+
+  // 팝업 위치 계산 (이벤트 옆에 표시, 화면 밖으로 나가지 않게)
+  useEffect(() => {
+    if (!popup?._rect) {
+      setPopupStyle({})
+      return
+    }
+    requestAnimationFrame(() => {
+      if (!popupRef.current) return
+      const rect = popup._rect
+      const el = popupRef.current
+      const popupW = el.offsetWidth
+      const popupH = el.offsetHeight
+      let left = rect.right + 8
+      let top = rect.top
+      // 우측 공간 부족 시 왼쪽에 표시
+      if (left + popupW > window.innerWidth - 16) {
+        left = rect.left - popupW - 8
+      }
+      // 하단 공간 부족 시 위로 조정
+      if (top + popupH > window.innerHeight - 16) {
+        top = window.innerHeight - popupH - 16
+      }
+      top = Math.max(16, top)
+      left = Math.max(16, left)
+      setPopupStyle({ left: `${left}px`, top: `${top}px`, opacity: 1 })
+    })
+  }, [popup?.id])
 
   // 현재 시간 바
   const [now, setNow] = useState(new Date())
@@ -273,7 +307,12 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
   const handleEventClick = (evt, e) => {
     e.stopPropagation()
     if (isDraggingRef.current) return
-    setPopup(popup?.id === evt.id ? null : evt)
+    if (popup?.id === evt.id) {
+      setPopup(null)
+      return
+    }
+    const rect = e.currentTarget.getBoundingClientRect()
+    setPopup({ ...evt, _rect: { top: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom } })
   }
 
   return (
@@ -296,7 +335,7 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
       </div>
 
       {/* 주간 그리드 */}
-      <div className="overflow-y-auto flex-1 min-h-0 thin-scrollbar bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl" onClick={() => setPopup(null)}>
+      <div className="overflow-y-auto flex-1 min-h-0 thin-scrollbar bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl" onClick={() => setPopup(null)} onScroll={() => popup && setPopup(null)}>
         {/* 요일 헤더 (sticky) */}
         <div className="grid grid-cols-[52px_repeat(7,1fr)] border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 sticky top-0 z-30 rounded-t-xl">
           {/* GMT+09 라벨 */}
@@ -529,36 +568,47 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
       </div>
 
       {/* 이벤트 상세 팝업 */}
-      {popup && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 flex items-start justify-between">
-          <div className="space-y-1">
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">{popup.title}</p>
-            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-              <Clock size={12} />
-              <span>
-                {formatTime(popup.startTime)}
-                {popup.endTime && ` ~ ${formatTime(popup.endTime)}`}
-              </span>
-            </div>
-            {popup.location && (
-              <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                <MapPin size={12} />
-                <span>{popup.location}</span>
+      {popup && createPortal(
+        <>
+          <div className="fixed inset-0 z-[9998]" onClick={() => setPopup(null)} />
+          <div
+            ref={popupRef}
+            className="fixed z-[9999] w-72 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-xl"
+            style={{ opacity: 0, transition: 'opacity 0.15s', ...popupStyle }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-2">
+              <p className="text-sm font-semibold text-gray-900 dark:text-white pr-2">{popup.title}</p>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={() => { onDelete(popup.id); setPopup(null) }}
+                  className="text-gray-400 dark:text-gray-500 hover:text-red-500 p-1"
+                >
+                  <Trash2 size={14} />
+                </button>
+                <button onClick={() => setPopup(null)} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1">
+                  <X size={14} />
+                </button>
               </div>
-            )}
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                <Clock size={12} />
+                <span>
+                  {formatTime(popup.startTime)}
+                  {popup.endTime && ` ~ ${formatTime(popup.endTime)}`}
+                </span>
+              </div>
+              {popup.location && (
+                <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                  <MapPin size={12} />
+                  <span>{popup.location}</span>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => { onDelete(popup.id); setPopup(null) }}
-              className="text-gray-400 dark:text-gray-500 hover:text-red-500 p-1"
-            >
-              <Trash2 size={14} />
-            </button>
-            <button onClick={() => setPopup(null)} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1">
-              <X size={14} />
-            </button>
-          </div>
-        </div>
+        </>,
+        document.body
       )}
     </div>
   )

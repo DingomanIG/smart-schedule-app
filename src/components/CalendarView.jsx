@@ -696,6 +696,10 @@ export default function CalendarView({ userId, refreshKey, now: nowProp, onCurre
             setSelectedDate={handleDateChange}
             events={visibleEvents}
             onDelete={handleDelete}
+            onMoveEvent={handleMoveEvent}
+            onResizeEvent={handleResizeEvent}
+            startHour={weekViewRange.startHour}
+            endHour={weekViewRange.endHour}
           />
         </div>
       )}

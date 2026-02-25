@@ -16,6 +16,9 @@ import ChildcareScheduleView from './components/ChildcareScheduleView'
 import CalendarView from './components/CalendarView'
 import WeeklyReport from './components/WeeklyReport'
 import NotificationSettings from './components/NotificationSettings'
+import UpdatePopup from './components/UpdatePopup'
+import { useVersionCheck } from './hooks/useVersionCheck'
+import { CURRENT_VERSION } from './data/versionHistory'
 
 // 정적 페이지 lazy loading
 const AboutPage = lazy(() => import('./pages/AboutPage'))
@@ -51,6 +54,13 @@ function MainApp() {
   const { dark, toggle } = useDarkMode()
   const { lang, t } = useLanguage()
   const [showReport, setShowReport] = useState(false)
+  const { showUpdate, dismissUpdate } = useVersionCheck()
+  const [showUpdateManual, setShowUpdateManual] = useState(false)
+  const isUpdateVisible = showUpdate || showUpdateManual
+  const handleCloseUpdate = () => {
+    dismissUpdate()
+    setShowUpdateManual(false)
+  }
   const [calendarKey, setCalendarKey] = useState(0)
   const [chatMode, setChatMode] = useState('chat')
   const [now, setNow] = useState(new Date())
@@ -132,6 +142,13 @@ function MainApp() {
         <div className="px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-blue-600 dark:text-blue-400 min-w-[130px]">{t('appTitle')}</h1>
+            <button
+              onClick={() => setShowUpdateManual(true)}
+              className="text-[10px] font-mono text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+              title={t('updateTitle')}
+            >
+              v{CURRENT_VERSION}
+            </button>
             {currentEvent && (
               <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg max-w-[200px] text-xs">
                 <span className="relative flex h-2 w-2 shrink-0">
@@ -344,6 +361,9 @@ function MainApp() {
           </div>
         </div>
       )}
+
+      {/* Update Popup */}
+      {isUpdateVisible && <UpdatePopup onClose={handleCloseUpdate} />}
     </div>
   )
 }

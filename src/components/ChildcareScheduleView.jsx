@@ -4,7 +4,7 @@ import {
   User, Baby, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { getEvents, deleteEvent, updateEvent, addBatchEvents } from '../services/schedule'
-import { getHelperProfile, saveHelperProfile } from '../services/helperProfile'
+import { getCategoryProfile, saveCategoryProfile } from '../services/categoryProfile'
 import { CHILDCARE_CATEGORY_STYLES, AGE_GROUPS, getChildAgeGroup, calculateAgeMonths } from '../data/childcareDefaults'
 import { useLanguage } from '../hooks/useLanguage'
 import { Timestamp } from 'firebase/firestore'
@@ -97,7 +97,7 @@ export default function ChildcareScheduleView({ userId, onEventCreated }) {
       const farFuture = new Date(2030, 11, 31)
       const allEvents = await getEvents(userId, farPast, farFuture)
       const filtered = allEvents
-        .filter(e => e.helperId === 'H06' || (e.createdVia === 'helper' && CHILDCARE_CATS.includes(e.category)))
+        .filter(e => e.categoryId === 'H06' || (e.createdVia === 'category' && CHILDCARE_CATS.includes(e.category)))
         .sort((a, b) => {
           const aTime = a.startTime?.toDate?.()?.getTime() || 0
           const bTime = b.startTime?.toDate?.()?.getTime() || 0
@@ -114,7 +114,7 @@ export default function ChildcareScheduleView({ userId, onEventCreated }) {
   useEffect(() => { fetchEvents() }, [fetchEvents])
 
   useEffect(() => {
-    if (userId) getHelperProfile(userId, 'H06').then(setProfile).catch(() => setProfile(null))
+    if (userId) getCategoryProfile(userId, 'H06').then(setProfile).catch(() => setProfile(null))
   }, [userId])
 
   useEffect(() => {

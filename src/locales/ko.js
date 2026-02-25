@@ -63,6 +63,12 @@ const ko = {
     save: '저장',
     cancel: '취소',
     confirm: '확인',
+
+    // Version Update Popup
+    updateTitle: '업데이트 안내',
+    updateMajor: '주요 업데이트',
+    updateMinor: '개선 사항',
+    updatePrevious: '이전 업데이트',
     delete: '삭제',
     edit: '수정',
     savedComplete: '저장 완료',
@@ -103,9 +109,9 @@ const ko = {
     markComplete: '완료로 표시',
     markIncomplete: '미완료로 표시',
 
-    // Daily Helper
-    helperDaily: '일상 도우미',
-    helperSelectTitle: '스케줄 도우미',
+    // Daily Category
+    helperDaily: '일상 카테고리',
+    helperSelectTitle: '일정 카테고리',
     helperStart: '일상 스케줄을 만들어 드릴게요! 몇 가지 질문에 답해주세요.',
     helperAskWakeUp: '몇 시에 일어나세요? (예: 7시, 07:00)',
     helperAskBedTime: '몇 시에 주무세요? (예: 23시, 밤 11시)',
@@ -116,7 +122,7 @@ const ko = {
     helperGenerating: '스케줄을 생성하고 있어요...',
     helperScheduleGenerated: '일상 스케줄이 완성되었어요! 확인 후 등록해주세요:',
     helperBatchSaved: '스케줄이 모두 등록되었습니다! 캘린더에서 확인하세요.',
-    helperCancelled: '도우미를 취소했습니다. 다시 시작하려면 "일상 스케줄 짜줘"라고 입력하세요.',
+    helperCancelled: '카테고리를 취소했습니다. 다시 시작하려면 "일상 스케줄 짜줘"라고 입력하세요.',
     helperRegisterAll: '전체 등록',
     helperScheduleTitle: '일상 스케줄',
     helperEventCount: '개 일정',
@@ -171,7 +177,7 @@ const ko = {
     notificationLabel: '알림',
     notificationStartsAt: '에 시작합니다',
 
-    // Major Events Helper
+    // Major Events Category
     majorEventsMode: '행사',
     petCareMode: '펫',
     majorTab_holiday: '공휴일',
@@ -205,7 +211,7 @@ const ko = {
     majorVacEfficiency: '효율',
     majorVacRatio: (p) => `${p.n}배`,
     majorDayUnit: '일',
-    helperMajorEvents: '휴일 도우미',
+    helperMajorEvents: '휴일 카테고리',
 
     // Chat → Major Events
     chatConfirmMajorEvent: '주요 행사를 확인해주세요:',
@@ -217,8 +223,8 @@ const ko = {
     chatRelLover: '연인',
     majorShow100Days: '100일 단위 표시 (100일, 200일, 300일...)',
 
-    // Pet Care Helper
-    helperPetCare: '펫 케어 도우미',
+    // Pet Care Category
+    helperPetCare: '펫 케어 카테고리',
     petCareStart: '🐾 펫 케어 스케줄을 만들어 드릴게요! 몇 가지 질문에 답해주세요.',
     petCareAskType: '어떤 동물을 키우시나요?\n🐶 강아지  /  🐱 고양이',
     petCareAskName: '이름이 뭐예요? (예: 초코, 나비)',
@@ -231,11 +237,11 @@ const ko = {
     petCareProfileFound: '기존 프로필을 찾았어요!',
     petCareScheduleGenerated: '펫 케어 스케줄이 완성되었어요! 확인 후 등록해주세요:',
     petCareBatchSaved: '펫 케어 스케줄이 등록되었습니다! 캘린더에서 확인하세요. 🐾',
-    petCareCancelled: '펫 케어 도우미를 취소했습니다. 다시 시작하려면 "펫 케어 도우미"라고 입력하세요.',
+    petCareCancelled: '펫 케어 카테고리를 취소했습니다. 다시 시작하려면 "펫 케어 카테고리"라고 입력하세요.',
     petCareScheduleOf: '의 하루 펫 케어 스케줄',
 
-    // Work Schedule Helper (H04)
-    helperWork: '업무 도우미',
+    // Work Schedule Category (H04)
+    helperWork: '업무 카테고리',
     helperWorkStart: '업무 스케줄을 만들어 드릴게요! 몇 가지 질문에 답해주세요.',
     helperWorkAskWorkType: '근무 형태가 어떻게 되세요?\n1. 사무직 (출근)  2. 재택근무  3. 하이브리드  4. 프리랜서',
     helperWorkAskHours: '출근 시간과 퇴근 시간을 알려주세요.\n(예: 9시~18시, 10:00~19:00)',
@@ -247,12 +253,12 @@ const ko = {
     helperWorkScheduleGenerated: '업무 스케줄이 완성되었어요! 확인 후 등록해주세요:',
     helperWorkScheduleTitle: '업무 스케줄',
     helperWorkBatchSaved: '업무 스케줄이 캘린더에 등록되었습니다!',
-    helperWorkCancelled: '업무 도우미를 취소했습니다. 다시 시작하려면 "업무 스케줄 짜줘"라고 입력하세요.',
+    helperWorkCancelled: '업무 카테고리를 취소했습니다. 다시 시작하려면 "업무 스케줄 짜줘"라고 입력하세요.',
     helperWorkError: '업무 스케줄 생성 중 오류가 발생했습니다. 다시 시도해주세요.',
     helperWorkProfileFound: '기존 업무 프로필을 찾았어요!',
 
-    // Childcare Helper (H06)
-    helperChildcare: '육아 도우미',
+    // Childcare Category (H06)
+    helperChildcare: '육아 카테고리',
     childcareStart: '육아 스케줄을 만들어 드릴게요! 몇 가지 질문에 답해주세요.',
     childcareAskName: '아이 이름이 뭐예요? (예: 하은, 서준)',
     childcareAskBirthdate: '아이 생년월일을 알려주세요.\n(예: 2024-06-15, 2024년 6월 15일, 8개월)',
@@ -261,7 +267,7 @@ const ko = {
     childcareProfileFound: '기존 육아 프로필을 찾았어요!',
     childcareScheduleGenerated: '육아 스케줄이 완성되었어요! 확인 후 등록해주세요:',
     childcareBatchSaved: '육아 스케줄이 등록되었습니다! 캘린더에서 확인하세요.',
-    childcareCancelled: '육아 도우미를 취소했습니다. 다시 시작하려면 "육아 스케줄 짜줘"라고 입력하세요.',
+    childcareCancelled: '육아 카테고리를 취소했습니다. 다시 시작하려면 "육아 스케줄 짜줘"라고 입력하세요.',
     childcareScheduleOf: '의 하루 육아 스케줄',
     childcareGenerating: '월령에 맞는 육아 스케줄을 생성 중...',
     childcareError: '육아 스케줄 생성 중 오류가 발생했습니다. 다시 시도해주세요.',
@@ -298,7 +304,7 @@ const ko = {
     workHourUnit: '시간',
     workMeetingUnit: '건',
 
-    // 업무 도우미 탭 뷰
+    // 업무 카테고리 탭 뷰
     workScheduleMode: '업무',
     workProfileSettings: '근무 설정',
     workTypeLabel: '근무 형태',

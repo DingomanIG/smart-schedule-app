@@ -4,7 +4,7 @@ import {
   User, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { getEvents, deleteEvent, addBatchEvents, updateEvent } from '../services/schedule'
-import { getHelperProfile, saveHelperProfile } from '../services/helperProfile'
+import { getCategoryProfile, saveCategoryProfile } from '../services/categoryProfile'
 import { WORK_CATEGORY_STYLES } from '../data/workDefaults'
 import { useLanguage } from '../hooks/useLanguage'
 import { Timestamp } from 'firebase/firestore'
@@ -89,7 +89,7 @@ export default function WorkScheduleView({ userId, onEventCreated }) {
   useEffect(() => {
     if (!userId) return
     ;(async () => {
-      const saved = await getHelperProfile(userId, 'H04')
+      const saved = await getCategoryProfile(userId, 'H04')
       if (saved) {
         setProfile(prev => ({ ...prev, ...saved }))
       }
@@ -107,7 +107,7 @@ export default function WorkScheduleView({ userId, onEventCreated }) {
         const allEvents = await getEvents(userId, dayStart, dayEnd)
         const WORK_CATS = ['deepwork', 'meeting', 'admin', 'planning', 'communication', 'break', 'deadline']
         const workEvents = allEvents.filter(e =>
-          e.helperId === 'H04' || WORK_CATS.includes(e.category)
+          e.categoryId === 'H04' || WORK_CATS.includes(e.category)
         )
         setEvents(workEvents)
       } catch {
@@ -122,7 +122,7 @@ export default function WorkScheduleView({ userId, onEventCreated }) {
   const handleSaveProfile = async (newProfile) => {
     const updated = { ...profile, ...newProfile }
     setProfile(updated)
-    await saveHelperProfile(userId, 'H04', updated)
+    await saveCategoryProfile(userId, 'H04', updated)
   }
 
   // 이벤트 추가
@@ -154,7 +154,7 @@ export default function WorkScheduleView({ userId, onEventCreated }) {
     const allEvents = await getEvents(userId, dayStart, dayEnd)
     const WORK_CATS = ['deepwork', 'meeting', 'admin', 'planning', 'communication', 'break', 'deadline']
     setEvents(allEvents.filter(e =>
-      e.helperId === 'H04' || WORK_CATS.includes(e.category)
+      e.categoryId === 'H04' || WORK_CATS.includes(e.category)
     ))
   }
 
@@ -226,7 +226,7 @@ export default function WorkScheduleView({ userId, onEventCreated }) {
     if (!profileDraft) return
     try {
       setProfile(profileDraft)
-      await saveHelperProfile(userId, 'H04', profileDraft)
+      await saveCategoryProfile(userId, 'H04', profileDraft)
     } catch { /* ignore */ }
     setEditingProfile(false)
     setProfileDraft(null)

@@ -63,6 +63,12 @@ const en = {
     save: 'Save',
     cancel: 'Cancel',
     confirm: 'Confirm',
+
+    // Version Update Popup
+    updateTitle: 'Update Notes',
+    updateMajor: 'Major Updates',
+    updateMinor: 'Improvements',
+    updatePrevious: 'Previous Updates',
     delete: 'Delete',
     edit: 'Edit',
     savedComplete: 'Saved',
@@ -103,9 +109,9 @@ const en = {
     markComplete: 'Mark as complete',
     markIncomplete: 'Mark as incomplete',
 
-    // Daily Helper
-    helperDaily: 'Daily Helper',
-    helperSelectTitle: 'Schedule Helper',
+    // Daily Category
+    helperDaily: 'Daily Category',
+    helperSelectTitle: 'Schedule Category',
     helperStart: "I'll create a daily schedule for you! Please answer a few questions.",
     helperAskWakeUp: 'What time do you wake up? (e.g., 7am, 07:00)',
     helperAskBedTime: 'What time do you go to bed? (e.g., 11pm, 23:00)',
@@ -116,7 +122,7 @@ const en = {
     helperGenerating: 'Generating your schedule...',
     helperScheduleGenerated: 'Your daily schedule is ready! Please review and register:',
     helperBatchSaved: 'All events have been registered! Check your calendar.',
-    helperCancelled: 'Helper cancelled. Type "daily schedule" to start again.',
+    helperCancelled: 'Category cancelled. Type "daily schedule" to start again.',
     helperRegisterAll: 'Register All',
     helperScheduleTitle: 'Daily Schedule',
     helperEventCount: ' events',
@@ -171,7 +177,7 @@ const en = {
     notificationLabel: 'Alerts',
     notificationStartsAt: 'Starts at ',
 
-    // Major Events Helper
+    // Major Events Category
     majorEventsMode: 'Events',
     petCareMode: 'Pet',
     majorTab_holiday: 'Holidays',
@@ -205,7 +211,7 @@ const en = {
     majorVacEfficiency: 'Efficiency',
     majorVacRatio: (p) => `${p.n}x`,
     majorDayUnit: ' days',
-    helperMajorEvents: 'Major Events Helper',
+    helperMajorEvents: 'Major Events Category',
 
     // Chat → Major Events
     chatConfirmMajorEvent: 'Please confirm the major event:',
@@ -217,8 +223,8 @@ const en = {
     chatRelLover: 'Lover',
     majorShow100Days: 'Show 100-day intervals (100, 200, 300 days...)',
 
-    // Pet Care Helper
-    helperPetCare: 'Pet Care Helper',
+    // Pet Care Category
+    helperPetCare: 'Pet Care Category',
     petCareStart: "🐾 I'll create a pet care schedule for you! Please answer a few questions.",
     petCareAskType: 'What kind of pet do you have?\n🐶 Dog  /  🐱 Cat',
     petCareAskName: "What's your pet's name? (e.g., Buddy, Luna)",
@@ -231,11 +237,11 @@ const en = {
     petCareProfileFound: 'Found your existing profile!',
     petCareScheduleGenerated: '🐾 Your pet care schedule is ready! Please review and register:',
     petCareBatchSaved: 'Pet care schedule registered! Check your calendar. 🐾',
-    petCareCancelled: 'Pet care helper cancelled. Type "pet care helper" to start again.',
+    petCareCancelled: 'Pet care category cancelled. Type "pet care category" to start again.',
     petCareScheduleOf: "'s Daily Care Schedule",
 
-    // Work Schedule Helper (H04)
-    helperWork: 'Work Helper',
+    // Work Schedule Category (H04)
+    helperWork: 'Work Category',
     helperWorkStart: "I'll create a work schedule for you! Please answer a few questions.",
     helperWorkAskWorkType: 'What is your work type?\n1. Office  2. Remote  3. Hybrid  4. Freelance',
     helperWorkAskHours: 'What are your work hours?\n(e.g., 9am-6pm, 10:00-19:00)',
@@ -247,12 +253,12 @@ const en = {
     helperWorkScheduleGenerated: 'Your work schedule is ready! Please review and register:',
     helperWorkScheduleTitle: 'Work Schedule',
     helperWorkBatchSaved: 'Work schedule registered to your calendar!',
-    helperWorkCancelled: 'Work helper cancelled. Type "work schedule" to start again.',
+    helperWorkCancelled: 'Work category cancelled. Type "work schedule" to start again.',
     helperWorkError: 'Error generating work schedule. Please try again.',
     helperWorkProfileFound: 'Found your existing work profile!',
 
-    // Childcare Helper (H06)
-    helperChildcare: 'Childcare Helper',
+    // Childcare Category (H06)
+    helperChildcare: 'Childcare Category',
     childcareStart: "I'll create a childcare schedule for you! Please answer a few questions.",
     childcareAskName: "What's your baby's name? (e.g., Emma, Liam)",
     childcareAskBirthdate: "When was your baby born?\n(e.g., 2024-06-15, 8 months)",
@@ -261,7 +267,7 @@ const en = {
     childcareProfileFound: 'Found your existing childcare profile!',
     childcareScheduleGenerated: 'Childcare schedule is ready! Please review and register:',
     childcareBatchSaved: 'Childcare schedule registered! Check your calendar.',
-    childcareCancelled: 'Childcare helper cancelled. Type "childcare schedule" to start again.',
+    childcareCancelled: 'Childcare category cancelled. Type "childcare schedule" to start again.',
     childcareScheduleOf: "'s Daily Childcare Schedule",
     childcareGenerating: 'Creating age-appropriate childcare schedule...',
     childcareError: 'Error generating childcare schedule. Please try again.',

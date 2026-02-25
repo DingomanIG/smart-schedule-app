@@ -102,8 +102,8 @@ export async function deleteAllEvents(userId) {
   return snapshot.size
 }
 
-// Batch Create - 도우미 일괄 일정 생성 (중복 방지)
-export async function addBatchEvents(userId, events, date, helperId) {
+// Batch Create - 카테고리 일괄 일정 생성 (중복 방지)
+export async function addBatchEvents(userId, events, date, categoryId) {
   // 해당 날짜의 기존 이벤트 조회 (중복 방지)
   const dayStart = new Date(`${date}T00:00:00`)
   const dayEnd = new Date(`${date}T23:59:59`)
@@ -147,9 +147,9 @@ export async function addBatchEvents(userId, events, date, helperId) {
       location: '',
       attendees: [],
       createdAt: Timestamp.now(),
-      createdVia: 'helper',
+      createdVia: 'category',
     }
-    if (helperId) docData.helperId = helperId
+    if (categoryId) docData.categoryId = categoryId
     if (event.careType) docData.careType = event.careType
     batch.set(newDocRef, docData)
     added++

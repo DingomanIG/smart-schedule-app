@@ -1,10 +1,10 @@
-# 스케줄 도우미 구현 프롬프트 템플릿
+# 스케줄 카테고리 구현 프롬프트 템플릿
 
-> 기존 일상/펫 케어/업무 도우미 코드 분석 기반, 동일 퀄리티의 새 도우미를 만들 때 사용하는 구현 가이드.
+> 기존 일상/펫 케어/업무 카테고리 코드 분석 기반, 동일 퀄리티의 새 카테고리를 만들 때 사용하는 구현 가이드.
 
 ---
 
-## 1. 도우미 ID 체계
+## 1. 카테고리 ID 체계
 
 | ID | 이름 | 테마색 | 아이콘 | 비고 |
 |-----|------|--------|--------|------|
@@ -12,7 +12,7 @@
 | H04 | 업무 | indigo | Briefcase | 태스크 입력 단계 추가 |
 | H11 | 펫 케어 | teal | PawPrint | 다중 루프 온보딩 |
 | H12 | 주요 행사 | red | Flag | |
-| HXX | 새 도우미 | 미정 | 미정 | 겹치지 않는 번호 부여 |
+| HXX | 새 카테고리 | 미정 | 미정 | 겹치지 않는 번호 부여 |
 
 ---
 
@@ -20,31 +20,31 @@
 
 1. `src/data/{name}Defaults.js` — 카테고리 스타일/라벨 **(새 파일)**
 2. `src/services/openai.js` — `generate{Name}Schedule()` 추가
-3. `src/utils/helperParser.js` — 트리거 + 온보딩 파서 추가
+3. `src/utils/categoryParser.js` — 트리거 + 온보딩 파서 추가
 4. `src/components/{Name}Card.jsx` — 배치 확인 카드 **(새 파일)**
 5. `src/components/ChatInterface.jsx` — 온보딩 스텝 + 핸들러 + 렌더링 통합
-6. `src/components/HelperSelector.jsx` — 드롭다운 항목 추가
+6. `src/components/CategorySelector.jsx` — 드롭다운 항목 추가
 7. `src/components/{Name}View.jsx` — 전용 뷰 **(새 파일, DailyScheduleView 그룹형 디자인 필수)** — 아래 3.9 참조
 8. `src/App.jsx` — 탭 버튼 + 뷰 렌더링 분기
 9. `src/locales/ko.js`, `en.js` — 다국어 키 추가
 
-> 재사용(수정 불필요): `schedule.js`(addBatchEvents), `helperProfile.js`(새 helperId로 호출)
+> 재사용(수정 불필요): `schedule.js`(addBatchEvents), `categoryProfile.js`(새 categoryId로 호출)
 
 ---
 
 ## 3. 구현 패턴
 
-### 3.1 트리거 감지 (`helperParser.js`)
+### 3.1 트리거 감지 (`categoryParser.js`)
 
-함수명: `is{Name}HelperTrigger(text) → boolean`
+함수명: `is{Name}CategoryTrigger(text) → boolean`
 
 **4단계 로직** (순서 엄수):
-1. `actionKeywords` 제외 — 삭제/취소/이동/변경 등 (모든 도우미 공통 정규식)
-2. 다른 도우미 키워드 제외 — 충돌 방지 (일상/펫/업무 등)
+1. `actionKeywords` 제외 — 삭제/취소/이동/변경 등 (모든 카테고리 공통 정규식)
+2. 다른 카테고리 키워드 제외 — 충돌 방지 (일상/펫/업무 등)
 3. 정확한 패턴 매칭 — 도메인 키워드 + `스[케캐][줄쥴]` 오타 변형 필수
-4. 동사 + 키워드 조합 — `짜줘|만들어|생성|추천|도우미` 등
+4. 동사 + 키워드 조합 — `짜줘|만들어|생성|추천|카테고리` 등
 
-### 3.2 온보딩 파서 (`helperParser.js`)
+### 3.2 온보딩 파서 (`categoryParser.js`)
 
 함수명: `parse{Field}(text) → 파싱값 | null` — null 반환 시 재입력 요청.
 - "없음/없어/no/none" 처리 (선택 필드만)
@@ -56,13 +56,13 @@
 상수 `{NAME}_ONBOARDING_STEPS` 배열로 정의 후 `getOnboardingSteps(type)` 분기 추가:
 ```js
 // 스텝 구조: { key, askKey, parser, skipIf? }
-// key: 프로필 필드명 / askKey: i18n 키 / parser: helperParser 함수
+// key: 프로필 필드명 / askKey: i18n 키 / parser: categoryParser 함수
 // skipIf: (answers) => boolean — 조건부 스텝 스킵
 ```
 
-### 3.4 handleStartHelper 분기
+### 3.4 handleStartCategory 분기
 
-프로필 존재 확인 → 있으면 `select_days` / 없으면 `startHelperOnboarding(type)`.
+프로필 존재 확인 → 있으면 `select_days` / 없으면 `startCategoryOnboarding(type)`.
 - **패턴 A (일상)**: 프로필 → 일수 선택 → GPT 생성
 - **패턴 B (업무)**: 프로필 → 추가 입력 → 일수 선택 → GPT 생성
 - **패턴 C (펫)**: 프로필(다중 루프) → 일수 선택 → GPT 생성
@@ -76,7 +76,7 @@
 - JSON 추출: `result.match(/\{[\s\S]*\}/)` → `fixOverlappingEvents()` 후처리 필수
 
 **⚠️ `category` vs `careType` 필드 규칙:**
-GPT 프롬프트에서 `category`를 한국어 도우미명으로 통일하고(예: `"육아"`, `"펫 케어"`), 구체적 하위 분류는 `careType` 필드에 영문으로 저장하는 패턴이 있다.
+GPT 프롬프트에서 `category`를 한국어 카테고리명으로 통일하고(예: `"육아"`, `"펫 케어"`), 구체적 하위 분류는 `careType` 필드에 영문으로 저장하는 패턴이 있다.
 전용 뷰에서 뱃지/필터/그룹핑에 사용할 필드는 반드시 **실제 하위 분류가 들어있는 필드**(`careType`)를 사용해야 한다.
 `category`를 사용하면 모든 뱃지가 동일한 한국어 텍스트(예: "육아")로 표시되는 버그 발생.
 ```
@@ -105,23 +105,23 @@ grouped[key] = { events: [], careType: evt.careType }  // → feeding, sleep, pl
 
 ### 3.8 handleSend 트리거 우선순위
 
-구체적 키워드 도우미 먼저 → 일상(`isDailyHelperTrigger`) 항상 마지막.
+구체적 키워드 카테고리 먼저 → 일상(`isDailyCategoryTrigger`) 항상 마지막.
 
 ### 3.9 뷰 필터링
 
-`createdVia === 'helper'` + `helperId === 'HXX'` 또는 카테고리 기반 필터링.
-> 새 도우미에서는 `helperId`를 명시적으로 전달 권장.
+`createdVia === 'category'` + `categoryId === 'HXX'` 또는 카테고리 기반 필터링.
+> 새 카테고리에서는 `categoryId`를 명시적으로 전달 권장.
 
 **⚠️ DailyScheduleView 필터 갱신 필수:**
-새 도우미를 추가할 때 `DailyScheduleView.jsx`의 이벤트 필터에서 해당 도우미를 **반드시 제외**해야 한다.
-일상 탭은 기본적으로 `createdVia === 'helper'`인 모든 이벤트를 표시하므로, 전용 뷰가 있는 도우미는 명시적으로 제외하지 않으면 일상 탭에도 중복 표시된다.
+새 카테고리를 추가할 때 `DailyScheduleView.jsx`의 이벤트 필터에서 해당 카테고리를 **반드시 제외**해야 한다.
+일상 탭은 기본적으로 `createdVia === 'category'`인 모든 이벤트를 표시하므로, 전용 뷰가 있는 카테고리는 명시적으로 제외하지 않으면 일상 탭에도 중복 표시된다.
 
 ```js
 // DailyScheduleView.jsx 필터 예시
-const isWork = evt.helperId === 'H04' || WORK_CATEGORIES.includes(evt.category)
-const isChildcare = evt.helperId === 'H06' || evt.category === '육아'
-const isNewHelper = evt.helperId === 'HXX'  // ← 새 도우미 추가 시 여기에 조건 추가
-return !isPet && !isWork && !isChildcare && !isNewHelper
+const isWork = evt.categoryId === 'H04' || WORK_CATEGORIES.includes(evt.category)
+const isChildcare = evt.categoryId === 'H06' || evt.category === '육아'
+const isNewCategory = evt.categoryId === 'HXX'  // ← 새 카테고리 추가 시 여기에 조건 추가
+return !isPet && !isWork && !isChildcare && !isNewCategory
 ```
 
 **⚠️ 전용 뷰 디자인 패턴 (DailyScheduleView 그룹형 필수):**
@@ -152,8 +152,8 @@ events.forEach(evt => {
 // → careType 기반 필터 → 그룹 카드 렌더링 → 뱃지에 group.careType 표시
 ```
 
-테마 색상은 도우미별로 구분:
-- 일상: `blue-500` / 펫: `teal-500` / 육아: `pink-500` / 새 도우미: 겹치지 않는 색상
+테마 색상은 카테고리별로 구분:
+- 일상: `blue-500` / 펫: `teal-500` / 육아: `pink-500` / 새 카테고리: 겹치지 않는 색상
 
 ---
 
@@ -184,21 +184,21 @@ Props: `{ events, days, onConfirmAll, onRemoveItem, onCancel, confirmed, cancell
 
 | 상태 | 용도 | 타입 |
 |------|------|------|
-| `helperState` | 온보딩 진행 추적 | `{ type, step, answers }` / `null` |
+| `categoryState` | 온보딩 진행 추적 | `{ type, step, answers }` / `null` |
 | `pendingProfile` | 프로필 완료 후 대기 | 프로필 + `_type` / `null` |
 
-**흐름:** 트리거 → 온보딩(`helperState`) → 프로필 완료(`pendingProfile`) → 일수 선택 → GPT → 배치 카드 → 확인/취소.
+**흐름:** 트리거 → 온보딩(`categoryState`) → 프로필 완료(`pendingProfile`) → 일수 선택 → GPT → 배치 카드 → 확인/취소.
 
-`_type` 규칙: `pendingProfile`에 `_type` 추가로 도우미 구분 → GPT 호출 전 `const { _type, ...clean } = profile`로 제거.
+`_type` 규칙: `pendingProfile`에 `_type` 추가로 카테고리 구분 → GPT 호출 전 `const { _type, ...clean } = profile`로 제거.
 
-`handleSend` 내 우선순위: helperState → pendingProfile → 전체삭제 → 프로필수정 → 도우미 트리거 → parseSchedule.
+`handleSend` 내 우선순위: categoryState → pendingProfile → 전체삭제 → 프로필수정 → 카테고리 트리거 → parseSchedule.
 
 ---
 
 ## 7. Firestore 스키마
 
-**프로필** (`helperProfiles`): 문서ID `{userId}_{helperId}`, `setDoc(merge:true)` upsert.
-**이벤트** (`events`): `createdVia: 'helper'`, `helperId: 'HXX'` 필수. `writeBatch` 원자적 저장.
+**프로필** (`categoryProfiles`): 문서ID `{userId}_{categoryId}`, `setDoc(merge:true)` upsert.
+**이벤트** (`events`): `createdVia: 'category'`, `categoryId: 'HXX'` 필수. `writeBatch` 원자적 저장.
 
 ---
 
@@ -208,7 +208,7 @@ Props: `{ events, days, onConfirmAll, onRemoveItem, onCancel, confirmed, cancell
 |------|------|------|
 | 컴포넌트 파일 | PascalCase | `GameScheduleCard.jsx` |
 | 데이터/유틸 파일 | camelCase | `gameDefaults.js` |
-| 트리거 함수 | `is{Name}HelperTrigger` | `isGameHelperTrigger` |
+| 트리거 함수 | `is{Name}CategoryTrigger` | `isGameCategoryTrigger` |
 | GPT 함수 | `generate{Name}Schedule` | `generateGameSchedule` |
 | 배치 생성 | `generateAndShow{Name}Batch` | `generateAndShowGameBatch` |
 | 온보딩 상수 | `{NAME}_ONBOARDING_STEPS` | `GAME_ONBOARDING_STEPS` |
@@ -225,4 +225,4 @@ Props: `{ events, days, onConfirmAll, onRemoveItem, onCancel, confirmed, cancell
 - **API**: 개발(Vite 프록시) / 프로덕션(`/api/chat`) 분기 유지
 - **UI**: 한국어 텍스트(`t()` 사용), 다크 모드 `dark:` 필수, 아이콘 `lucide-react`
 - **파서**: 실패 시 `null` 반환 (throw 금지), 한국어 오타 변형 포함
-- **트리거**: actionKeywords 제외 + 타 도우미 키워드 제외 + 일상 트리거 최후순위
+- **트리거**: actionKeywords 제외 + 타 카테고리 키워드 제외 + 일상 트리거 최후순위

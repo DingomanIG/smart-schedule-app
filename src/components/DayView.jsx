@@ -105,8 +105,8 @@ export default function DayView({ selectedDate, setSelectedDate, events, onDelet
           dayEvents.map((evt) => {
             const priority = evt.priority || 'medium'
             const category = evt.category || '기타'
-            const isHelper = evt.createdVia === 'helper'
-            const priorityBar = isHelper ? 'bg-emerald-500' : (PRIORITY_COLORS[priority] || PRIORITY_COLORS.medium)
+            const isCategory = evt.createdVia === 'category'
+            const priorityBar = isCategory ? 'bg-emerald-500' : (PRIORITY_COLORS[priority] || PRIORITY_COLORS.medium)
             const categoryStyle = CATEGORY_STYLES[category] || CATEGORY_STYLES['기타']
             const isConfirmingDelete = deletingId === evt.id
 
@@ -114,7 +114,7 @@ export default function DayView({ selectedDate, setSelectedDate, events, onDelet
               <div
                 key={evt.id}
                 className={`flex rounded-xl overflow-hidden bg-white dark:bg-gray-800 border shadow-sm ${
-                  isHelper
+                  isCategory
                     ? 'border-emerald-300 dark:border-emerald-700'
                     : 'border-gray-200 dark:border-gray-700'
                 }`}

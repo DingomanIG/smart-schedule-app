@@ -45,7 +45,7 @@
 
 ## 3. 온보딩 플로우 패턴
 
-도우미 최초 사용 시 단계별 질문.
+카테고리 최초 사용 시 단계별 질문.
 
 ```
 채팅 메시지 (질문) → 버튼 선택 → 다음 질문 → ... → GPT 호출 → 카드 표시
@@ -72,6 +72,6 @@ chatMode 값    렌더링 컴포넌트
 ## 6. 프로필 저장/로드 패턴
 
 ```
-Firestore: helperProfiles/{userId}_{helperId}
+Firestore: categoryProfiles/{userId}_{categoryId}
 최초 온보딩 → 프로필 저장 → 이후 프로필 로드 → 변경 사항만 재입력
 ```

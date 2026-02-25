@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Sparkles, Sun, Flag, PawPrint, Briefcase, Baby } from 'lucide-react'
 import { useLanguage } from '../hooks/useLanguage'
 
-export default function HelperSelector({ onSelectHelper, disabled }) {
+export default function CategorySelector({ onSelectCategory, disabled }) {
   const { t } = useLanguage()
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
@@ -19,7 +19,7 @@ export default function HelperSelector({ onSelectHelper, disabled }) {
 
   const handleSelect = (type) => {
     setOpen(false)
-    onSelectHelper(type)
+    onSelectCategory(type)
   }
 
   return (

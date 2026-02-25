@@ -7,7 +7,7 @@ import {
   getHolidaysForYear, getDDay, analyzeVacationEfficiency,
   generateAnniversaryDates,
 } from '../data/koreanHolidays'
-import { getHelperProfile, saveHelperProfile } from '../services/helperProfile'
+import { getCategoryProfile, saveCategoryProfile } from '../services/categoryProfile'
 import { lunarToSolar } from '../utils/lunarConverter'
 import { useLanguage } from '../hooks/useLanguage'
 
@@ -56,7 +56,7 @@ export default function MajorEventsView({ userId, onEventCreated }) {
   const loadMajorEvents = useCallback(async () => {
     setLoading(true)
     try {
-      const profile = await getHelperProfile(userId, 'H12')
+      const profile = await getCategoryProfile(userId, 'H12')
       if (profile) {
         setMajorEvents({
           birthdays: profile.birthdays || [],
@@ -76,7 +76,7 @@ export default function MajorEventsView({ userId, onEventCreated }) {
   const saveMajorEvents = async (updated) => {
     setMajorEvents(updated)
     try {
-      await saveHelperProfile(userId, 'H12', updated)
+      await saveCategoryProfile(userId, 'H12', updated)
     } catch { /* demo mode */ }
     onEventCreated?.()
   }

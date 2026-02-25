@@ -40,7 +40,7 @@ npm run preview  # 프로덕션 빌드 미리보기
 
 - **상태 관리:** `useState`만 사용 — 외부 상태 라이브러리 없음. CalendarView 갱신은 `calendarKey` number prop 증가로 트리거.
 - **Firestore 타임스탬프:** 모든 날짜는 `Timestamp` 객체로 저장. 표시 시 `.toDate()` 변환. 일관된 `YYYY-MM-DD` 포맷팅은 `toLocalDateStr()` 헬퍼 사용 (UTC 타임존 버그 방지).
-- **이벤트 스키마:** `{ userId, title, startTime: Timestamp, endTime: Timestamp|null, category, location, attendees[], createdAt, createdVia: 'chat' }`
+- **이벤트 스키마:** `{ userId, title, startTime: Timestamp, endTime: Timestamp|null, category, location, attendees[], createdAt, createdVia: 'chat'|'category', categoryId? }`
 - **데모 모드:** Firebase 없이도 앱이 동작 — `useAuth`가 데모 유저를 반환하지만 Firestore 작업은 조용히 실패.
 - **스타일링:** Tailwind CSS, 모든 곳에 `dark:` 변형 적용. 기본 색상: `blue-600`. 아이콘은 `lucide-react` 사용.
 
@@ -54,12 +54,12 @@ npm run preview  # 프로덕션 빌드 미리보기
 - 모든 사용자 노출 텍스트는 한국어
 - 새 문서는 `docs/` 하위 폴더에 버전 접미사(`_v1.0.md`) 포함
 - `docs/`는 개발 전용 — 배포 코드를 넣지 않는다
-- UI에 이모지/아이콘 사용을 최대한 배제한다. 예외: 스케줄 도우미(Helper) 영역 또는 화면 최상단 우측 영역에 배치하는 경우에만 허용.
+- UI에 이모지/아이콘 사용을 최대한 배제한다. 예외: 스케줄 카테고리(Category) 영역 또는 화면 최상단 우측 영역에 배치하는 경우에만 허용.
 
 ## 작업 규칙
 
 - 구현 전에 반드시 `docs/` 폴더의 관련 기획서를 먼저 읽을 것
-- 컴포넌트 생성 시 `docs/prompt/SCHEDULE_HELPER_DEV_GUIDE_v2.0.md`를 참고할 것
+- 컴포넌트 생성 시 `docs/prompt/prompt_category-base.md`를 참고할 것
 - 기획서에 없는 기능은 임의로 추가하지 말 것
 - 문서 작성 시 다른 문서에 이미 정의된 내용을 중복 기술하지 말 것 — 참조(`docs/design/design-tokens.md` 참고 등)로 대체
 
@@ -79,13 +79,13 @@ src/
 │   ├── CalendarView.jsx             # 캘린더 (월/주/일 뷰 관리)
 │   ├── WeekView.jsx                 # 주간 뷰
 │   ├── DayView.jsx                  # 일간 뷰
-│   ├── ChatInterface.jsx            # 채팅 + 도우미 트리거 허브
+│   ├── ChatInterface.jsx            # 채팅 + 카테고리 트리거 허브
 │   ├── ScheduleCard.jsx             # 채팅 확인 카드 (create/move/update/delete)
-│   ├── HelperSelector.jsx           # 도우미 선택 드롭다운
-│   ├── BatchConfirmCard.jsx         # 일상 도우미 배치 카드 (green)
+│   ├── CategorySelector.jsx         # 카테고리 선택 드롭다운
+│   ├── BatchConfirmCard.jsx         # 일상 카테고리 배치 카드 (green)
 │   ├── PetCareCard.jsx              # 펫 케어 배치 카드 (teal)
-│   ├── WorkScheduleCard.jsx         # 업무 도우미 배치 카드 (indigo)
-│   ├── ChildcareCard.jsx            # 육아 도우미 배치 카드 (pink)
+│   ├── WorkScheduleCard.jsx         # 업무 카테고리 배치 카드 (indigo)
+│   ├── ChildcareCard.jsx            # 육아 카테고리 배치 카드 (pink)
 │   ├── DailyScheduleView.jsx        # 일상/펫 전용 뷰 (듀얼 모드)
 │   ├── WorkScheduleView.jsx         # 업무 전용 뷰
 │   ├── ChildcareScheduleView.jsx    # 육아 전용 뷰
@@ -106,7 +106,7 @@ src/
 │   └── childcareDefaults.js         # 육아 카테고리 스타일/월령 데이터
 ├── services/
 │   ├── firebase.js                  # Firebase 초기화
-│   ├── helperProfile.js             # 도우미 프로필 CRUD
+│   ├── categoryProfile.js           # 카테고리 프로필 CRUD
 │   ├── openai.js                    # GPT 호출 (parseSchedule, generateDailySchedule 등)
 │   └── schedule.js                  # Firestore 이벤트 CRUD (addBatchEvents 등)
 ├── hooks/
@@ -116,7 +116,7 @@ src/
 │   └── useNotifications.js          # 알림 훅
 ├── utils/
 │   ├── dateParser.js                # 한국어 날짜 파싱
-│   ├── helperParser.js              # 도우미 트리거/파서
+│   ├── categoryParser.js             # 카테고리 트리거/파서
 │   └── lunarConverter.js            # 음력 변환
 ├── locales/
 │   ├── ko.js                        # 한국어
@@ -141,16 +141,16 @@ docs/
 │   ├── cost-revenue.md              # 비용/수익 예상
 │   ├── PLAN_DEPLOYMENT_CHECKLIST_v1.0.md  # 배포 체크리스트
 │   ├── 버스.md                      # 버스 관련 메모
-│   ├── helper/                      # 도우미별 기획서
-│   │   ├── PLAN_CHILDCARE_SCHEDULE_HELPER_v1.0.md
-│   │   ├── PLAN_DIET_SCHEDULE_HELPER_v1.0.md
-│   │   ├── PLAN_GAME_SCHEDULE_HELPER_v1.0.md
-│   │   ├── PLAN_MAJOR_EVENTS_SCHEDULE_HELPER_v1.0.md
-│   │   ├── PLAN_PET_CARE_SCHEDULE_HELPER_v1.0.md
-│   │   ├── PLAN_SPORTS_SCHEDULE_HELPER_v1.0.md
-│   │   └── PLAN_WORK_SCHEDULE_HELPER_v1.0.md
+│   ├── category/                    # 카테고리별 기획서
+│   │   ├── PLAN_CHILDCARE_SCHEDULE_CATEGORY_v1.0.md
+│   │   ├── PLAN_DIET_SCHEDULE_CATEGORY_v1.0.md
+│   │   ├── PLAN_GAME_SCHEDULE_CATEGORY_v1.0.md
+│   │   ├── PLAN_MAJOR_EVENTS_SCHEDULE_CATEGORY_v1.0.md
+│   │   ├── PLAN_PET_CARE_SCHEDULE_CATEGORY_v1.0.md
+│   │   ├── PLAN_SPORTS_SCHEDULE_CATEGORY_v1.0.md
+│   │   └── PLAN_WORK_SCHEDULE_CATEGORY_v1.0.md
 │   └── persona/
 │       └── PLAN_AI_PERSONA_FEATURE_v1.0.md
 └── prompt/                                  # 구현 프롬프트 (AI용)
-    └── SCHEDULE_HELPER_DEV_GUIDE_v2.0.md  # 도우미 개발 가이드
+    └── prompt_category-base.md            # 카테고리 개발 가이드
 ```

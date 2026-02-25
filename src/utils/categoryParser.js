@@ -1,5 +1,5 @@
 /**
- * helperParser.js - 일상 도우미 온보딩 답변 파싱 유틸리티
+ * categoryParser.js - 일상 카테고리 온보딩 답변 파싱 유틸리티
  * GPT 호출 없이 로컬에서 파싱 (API 비용 절감 + 즉각 응답)
  */
 
@@ -194,15 +194,15 @@ export function parseRoutinesInput(text) {
 }
 
 /**
- * 일상 도우미 트리거 감지
+ * 일상 카테고리 트리거 감지
  * @param {string} text
  * @returns {boolean}
  */
-export function isDailyHelperTrigger(text) {
+export function isDailyCategoryTrigger(text) {
   if (!text || typeof text !== 'string') return false
   const t = text.trim().toLowerCase()
 
-  // 기존 일정 관리 키워드가 포함되면 도우미 트리거 아님
+  // 기존 일정 관리 키워드가 포함되면 카테고리 트리거 아님
   const actionKeywords = /삭제|취소|지워|지우|옮겨|옮기|이동|변경|바꿔|바꾸|수정|업데이트|빼줘|없애/
   if (actionKeywords.test(t)) return false
 
@@ -217,14 +217,14 @@ export function isDailyHelperTrigger(text) {
     /하루\s*스[케캐][줄쥴]/,
     /하루\s*루틴/,
     /일상\s*루틴/,
-    /스[케캐][줄쥴]\s*도우미/,
+    /스[케캐][줄쥴]\s*(?:도우미|카테고리)/,
     /daily\s*schedule/i,
     /daily\s*routine/i,
     /daily\s*plan/i,
   ]
 
   // "줘"는 너무 광범위하므로 생성 관련 동사만 사용
-  const verbs = /(짜줘|짜|만들어줘|만들어|만들|생성|작성|세워|잡아|추천|도우미|helper|plan)/i
+  const verbs = /(짜줘|짜|만들어줘|만들어|만들|생성|작성|세워|잡아|추천|카테고리|도우미|helper|category|plan)/i
 
   // 정확한 패턴 매칭
   if (patterns.some(p => p.test(t))) return true
@@ -243,27 +243,26 @@ export function isDailyHelperTrigger(text) {
 }
 
 /**
- * 펫 케어 도우미 트리거 감지
+ * 펫 케어 카테고리 트리거 감지
  * @param {string} text
  * @returns {boolean}
  */
-export function isPetCareHelperTrigger(text) {
+export function isPetCareCategoryTrigger(text) {
   if (!text || typeof text !== 'string') return false
   const t = text.trim().toLowerCase()
 
-  // 기존 일정 관리 키워드가 포함되면 도우미 트리거 아님
+  // 기존 일정 관리 키워드가 포함되면 카테고리 트리거 아님
   const actionKeywords = /삭제|취소|지워|지우|옮겨|옮기|이동|변경|바꿔|바꾸|수정|업데이트|빼줘|없애/
   if (actionKeywords.test(t)) return false
 
   // 펫 관련 키워드 통합 (펫,팻,반려견,반려묘,반려동물,애완동물,강아지,고양이 등)
   const petWords = '펫|팻|반려견|반려묘|반려동물|애완동물|애완|강아지|멍뭉이|고양이|고냥이|냥이'
-  const petPattern = new RegExp(`(?:${petWords})`)
 
   const patterns = [
     new RegExp(`(?:${petWords})\\s*케어`),
     new RegExp(`(?:${petWords})\\s*스[케캐][줄쥴]`),
     new RegExp(`(?:${petWords})\\s*(?:일정|돌봄|관리)`),
-    new RegExp(`(?:${petWords})\\s*도우미`),
+    new RegExp(`(?:${petWords})\\s*(?:도우미|카테고리)`),
     new RegExp(`(?:${petWords})\\s*밥\\s*시간`),
     new RegExp(`(?:우리\\s*집|우리)\\s*(?:${petWords})\\s*일정`),
     /pet\s*care/i,
@@ -357,26 +356,26 @@ export function parsePetIndoor(text) {
 }
 
 /**
- * 업무 도우미 트리거 감지
+ * 업무 카테고리 트리거 감지
  * @param {string} text
  * @returns {boolean}
  */
-export function isWorkHelperTrigger(text) {
+export function isWorkCategoryTrigger(text) {
   if (!text || typeof text !== 'string') return false
   const t = text.trim().toLowerCase()
 
-  // 기존 일정 관리 키워드가 포함되면 도우미 트리거 아님
+  // 기존 일정 관리 키워드가 포함되면 카테고리 트리거 아님
   const actionKeywords = /삭제|취소|지워|지우|옮겨|옮기|이동|변경|바꿔|바꾸|수정|업데이트|빼줘|없애/
   if (actionKeywords.test(t)) return false
 
-  // 일상/펫 도우미와 구분: 일상/하루/펫 키워드가 있으면 업무 트리거 아님
+  // 일상/펫 카테고리와 구분: 일상/하루/펫 키워드가 있으면 업무 트리거 아님
   if (/일상|하루|펫|팻|강아지|고양이|반려/.test(t)) return false
 
   const patterns = [
     /업무\s*스[케캐][줄쥴]/,
     /업무\s*일정/,
     /업무\s*계획/,
-    /업무\s*도우미/,
+    /업무\s*(?:도우미|카테고리)/,
     /태스크\s*(?:관리|정리|블록)/,
     /타임\s*블록/,
     /work\s*schedule/i,
@@ -384,7 +383,7 @@ export function isWorkHelperTrigger(text) {
     /task\s*(?:block|plan)/i,
   ]
 
-  const verbs = /(짜줘|짜|만들어줘|만들어|만들|생성|작성|세워|잡아|추천|도우미|helper|plan)/i
+  const verbs = /(짜줘|짜|만들어줘|만들어|만들|생성|작성|세워|잡아|추천|카테고리|도우미|helper|category|plan)/i
 
   if (patterns.some(p => p.test(t))) return true
 
@@ -459,19 +458,19 @@ export function parseWorkTasks(text) {
 }
 
 /**
- * 육아 도우미 트리거 감지
+ * 육아 카테고리 트리거 감지
  * @param {string} text
  * @returns {boolean}
  */
-export function isChildcareHelperTrigger(text) {
+export function isChildcareCategoryTrigger(text) {
   if (!text || typeof text !== 'string') return false
   const t = text.trim().toLowerCase()
 
-  // 기존 일정 관리 키워드가 포함되면 도우미 트리거 아님
+  // 기존 일정 관리 키워드가 포함되면 카테고리 트리거 아님
   const actionKeywords = /삭제|취소|지워|지우|옮겨|옮기|이동|변경|바꿔|바꾸|수정|업데이트|빼줘|없애/
   if (actionKeywords.test(t)) return false
 
-  // 다른 도우미 키워드 제외
+  // 다른 카테고리 키워드 제외
   if (/일상|하루|펫|팻|강아지|고양이|반려|업무|태스크/.test(t)) return false
 
   const childcareWords = '육아|아기|아이|신생아|영아|유아|돌봄|수유|이유식|기저귀|낮잠'
@@ -480,7 +479,7 @@ export function isChildcareHelperTrigger(text) {
   const patterns = [
     new RegExp(`(?:${childcareWords})\\s*스[케캐][줄쥴]`),
     new RegExp(`(?:${childcareWords})\\s*(?:일정|루틴|관리)`),
-    new RegExp(`(?:${childcareWords})\\s*도우미`),
+    new RegExp(`(?:${childcareWords})\\s*(?:도우미|카테고리)`),
     /childcare\s*schedule/i,
     /baby\s*schedule/i,
     /baby\s*routine/i,
@@ -489,7 +488,7 @@ export function isChildcareHelperTrigger(text) {
   if (patterns.some(p => p.test(t))) return true
 
   // 동사 + 키워드 조합
-  const verbs = /(짜줘|짜|만들어줘|만들어|만들|생성|작성|세워|잡아|추천|도우미|helper|plan)/i
+  const verbs = /(짜줘|짜|만들어줘|만들어|만들|생성|작성|세워|잡아|추천|카테고리|도우미|helper|category|plan)/i
   if (verbs.test(t) && childcarePattern.test(t)) return true
 
   return false
@@ -568,11 +567,11 @@ export function parseChildGender(text) {
 }
 
 /**
- * 도우미 취소 감지
+ * 카테고리 취소 감지
  * @param {string} text
  * @returns {boolean}
  */
-export function isHelperCancel(text) {
+export function isCategoryCancel(text) {
   if (!text || typeof text !== 'string') return false
   const t = text.trim()
   return /^(취소|그만|cancel|stop|quit)$/i.test(t)

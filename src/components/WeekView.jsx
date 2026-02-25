@@ -4,7 +4,7 @@ import { getEventSource } from '../utils/eventClassifier'
 
 const DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일']
 
-const HELPER_COLOR_MAP = {
+const CATEGORY_COLOR_MAP = {
   chat:      { bg: 'bg-blue-500', border: 'border-blue-600', activeBg: 'bg-blue-600', activeBorder: 'border-blue-700' },
   daily:     { bg: 'bg-blue-500', border: 'border-blue-600', activeBg: 'bg-blue-600', activeBorder: 'border-blue-700' },
   petcare:   { bg: 'bg-teal-500', border: 'border-teal-600', activeBg: 'bg-teal-600', activeBorder: 'border-teal-700' },
@@ -425,8 +425,8 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
                     const width = `calc(${100 / item.totalColumns}% - 4px)`
                     const left = `calc(${(item.column / item.totalColumns) * 100}% + 2px)`
                     const isActive = popup?.id === item.evt.id
-                    const helperType = getEventSource(item.evt)
-                    const colors = HELPER_COLOR_MAP[helperType] || HELPER_COLOR_MAP.daily
+                    const categoryType = getEventSource(item.evt)
+                    const colors = CATEGORY_COLOR_MAP[categoryType] || CATEGORY_COLOR_MAP.daily
 
                     return (
                       <div

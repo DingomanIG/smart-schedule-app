@@ -147,6 +147,8 @@ export default function DayView({ selectedDate, setSelectedDate, events, onDelet
   const fullHours = Array.from({ length: totalHours + 1 }, (_, i) => i + startHour)
   const HOUR_HEIGHT = 48
   const [popup, setPopup] = useState(null)
+  const popupRef = useRef(null)
+  const [popupStyle, setPopupStyle] = useState({})
   const scrollRef = useRef(null)
   const gridRef = useRef(null)
   const isDraggingRef = useRef(false)
@@ -187,6 +189,32 @@ export default function DayView({ selectedDate, setSelectedDate, events, onDelet
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [popup, onDelete])
+
+  // 팝업 위치 계산 (이벤트 옆에 표시, 화면 밖으로 나가지 않게)
+  useEffect(() => {
+    if (!popup?._rect) {
+      setPopupStyle({})
+      return
+    }
+    requestAnimationFrame(() => {
+      if (!popupRef.current) return
+      const rect = popup._rect
+      const el = popupRef.current
+      const popupW = el.offsetWidth
+      const popupH = el.offsetHeight
+      let left = rect.right + 8
+      let top = rect.top
+      if (left + popupW > window.innerWidth - 16) {
+        left = rect.left - popupW - 8
+      }
+      if (top + popupH > window.innerHeight - 16) {
+        top = window.innerHeight - popupH - 16
+      }
+      top = Math.max(16, top)
+      left = Math.max(16, left)
+      setPopupStyle({ left: `${left}px`, top: `${top}px`, opacity: 1 })
+    })
+  }, [popup?.id])
 
   // 리사이즈 드래그 핸들러 (마우스 이벤트)
   useEffect(() => {
@@ -267,7 +295,13 @@ export default function DayView({ selectedDate, setSelectedDate, events, onDelet
   const handleEventClick = (evt, e) => {
     e.stopPropagation()
     if (isDraggingRef.current) return
-    setPopup(popup?.id === evt.id ? null : evt)
+    if (popup?.id === evt.id) {
+      setPopup(null)
+      return
+    }
+    const rect = e.currentTarget.getBoundingClientRect()
+    setPopupStyle({})
+    setPopup({ ...evt, _rect: { top: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom } })
   }
 
   return (
@@ -302,6 +336,7 @@ export default function DayView({ selectedDate, setSelectedDate, events, onDelet
         ref={scrollRef}
         className="flex-1 min-h-0 overflow-y-auto thin-scrollbar bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl"
         onClick={() => setPopup(null)}
+        onScroll={() => popup && setPopup(null)}
       >
         <div className="relative">
           <div className="grid grid-cols-[52px_1fr] relative" style={{ height: `${totalHours * HOUR_HEIGHT}px` }}>
@@ -482,12 +517,14 @@ export default function DayView({ selectedDate, setSelectedDate, events, onDelet
         </div>
       </div>
 
-      {/* 이벤트 상세 팝업 (화면 중앙) */}
+      {/* 이벤트 상세 팝업 (floating) */}
       {popup && createPortal(
         <>
-          <div className="fixed inset-0 z-[9998] bg-black/20" onClick={() => setPopup(null)} />
+          <div className="fixed inset-0 z-[9998]" onClick={() => setPopup(null)} />
           <div
-            className="fixed z-[9999] w-72 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-xl"
+            ref={popupRef}
+            className="fixed z-[9999] w-72 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-xl"
+            style={{ opacity: 0, transition: 'opacity 0.15s', ...popupStyle }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between mb-2">

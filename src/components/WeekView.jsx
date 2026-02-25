@@ -312,6 +312,7 @@ export default function WeekView({ selectedDate, setSelectedDate, events, onDele
       return
     }
     const rect = e.currentTarget.getBoundingClientRect()
+    setPopupStyle({})
     setPopup({ ...evt, _rect: { top: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom } })
   }
 

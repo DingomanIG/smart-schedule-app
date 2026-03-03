@@ -291,48 +291,26 @@ const FutureBlog = () => {
               Y-schedule의 로드맵은 사용자 여러분의 피드백을 바탕으로 작성됩니다.
               여러분이 원하는 기능, 개선이 필요한 부분을 알려주세요.
             </p>
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg text-center">
-                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">
-                  1,000+
-                </div>
-                <p className="text-sm text-gray-700 dark:text-gray-300">수집된 피드백</p>
-              </div>
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg text-center">
-                <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">
-                  85%
-                </div>
-                <p className="text-sm text-gray-700 dark:text-gray-300">구현된 사용자 제안</p>
-              </div>
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg text-center">
-                <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">
-                  매월
-                </div>
-                <p className="text-sm text-gray-700 dark:text-gray-300">새로운 기능 업데이트</p>
-              </div>
-            </div>
+            <Link
+              to="/contact"
+              className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
+            >
+              의견 보내기
+            </Link>
           </div>
 
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-8 rounded-lg text-white my-8">
             <h2 className="text-2xl font-bold mb-4">함께 만들어가요</h2>
             <p className="mb-6">
-              Y-schedule의 발전을 함께 만들어갈 얼리 어답터를 모집합니다.
-              새로운 기능을 가장 먼저 사용하고, 개발 과정에 참여하세요.
+              원하는 기능이나 개선 사항이 있으시면 문의 페이지를 통해 의견을 보내주세요.
+              여러분의 피드백이 Y-schedule의 발전에 큰 도움이 됩니다.
             </p>
-            <div className="grid md:grid-cols-2 gap-4">
-              <Link
-                to="/contact"
-                className="block bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors text-center"
-              >
-                피드백 보내기
-              </Link>
-              <Link
-                to="/"
-                className="block bg-white bg-opacity-20 backdrop-blur text-white px-6 py-3 rounded-lg font-semibold hover:bg-opacity-30 transition-colors text-center border border-white"
-              >
-                베타 테스터 신청
-              </Link>
-            </div>
+            <Link
+              to="/contact"
+              className="inline-block bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+            >
+              피드백 보내기
+            </Link>
           </div>
 
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-12 mb-6">
@@ -356,7 +334,7 @@ const FutureBlog = () => {
               </h3>
               <p className="text-gray-700 dark:text-gray-300">
                 A: 2026년 Q3에 iOS와 Android 네이티브 앱 출시를 목표로 개발 중입니다.
-                베타 테스터로 신청하시면 우선 체험 기회를 드립니다.
+                출시 일정은 문의 페이지를 통해 확인하실 수 있습니다.
               </p>
             </div>
 

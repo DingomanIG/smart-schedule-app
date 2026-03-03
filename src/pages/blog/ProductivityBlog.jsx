@@ -104,7 +104,7 @@ const ProductivityBlog = () => {
                 💡 Y-schedule 활용 팁
               </p>
               <p className="text-sm text-gray-700 dark:text-gray-300">
-                AI가 자동으로 우선순위를 판단하지만, 주간 리포트를 통해
+                AI가 카테고리를 자동으로 분류하지만, 주간 리포트를 통해
                 실제 중요한 일에 시간을 잘 쓰고 있는지 확인하세요.
               </p>
             </div>
@@ -281,36 +281,6 @@ const ProductivityBlog = () => {
                     <div className="bg-orange-600 h-2 rounded-full" style={{ width: '12%' }}></div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-12 mb-6">
-            실전 사례: 한 달간의 변화
-          </h2>
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-8 rounded-lg mb-8">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                  시작 전 (1주차)
-                </h3>
-                <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-                  <li>• 일정 관리 시간: 하루 30분</li>
-                  <li>• 일정 완료율: 65%</li>
-                  <li>• 중요 업무 집중: 40%</li>
-                  <li>• 스트레스 지수: 높음</li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                  4주 후
-                </h3>
-                <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-                  <li>✓ 일정 관리 시간: 하루 5분</li>
-                  <li>✓ 일정 완료율: 92%</li>
-                  <li>✓ 중요 업무 집중: 75%</li>
-                  <li>✓ 스트레스 지수: 낮음</li>
-                </ul>
               </div>
             </div>
           </div>

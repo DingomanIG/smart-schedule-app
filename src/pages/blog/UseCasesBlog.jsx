@@ -39,7 +39,7 @@ const UseCasesBlog = () => {
 
         <div className="prose prose-lg dark:prose-invert max-w-none">
           <p className="text-xl text-gray-700 dark:text-gray-300 mb-8">
-            Y-schedule이 실제 사용자들의 삶을 어떻게 변화시켰는지 생생한 사례를 통해 알아보세요.
+            Y-schedule은 다양한 상황에서 일정 관리를 도와줍니다. 어떤 유형의 사용자에게 어떻게 활용될 수 있는지 살펴보세요.
           </p>
 
           {/* Case Study 1 */}
@@ -48,40 +48,35 @@ const UseCasesBlog = () => {
               <Briefcase className="w-12 h-12 text-blue-600 dark:text-blue-400 mr-4" />
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  사례 1: 바쁜 스타트업 CEO 김민수님
+                  직장인 활용 사례
                 </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">IT 스타트업 대표 | 서울</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">미팅, 업무, 출장이 많은 직장인</p>
               </div>
             </div>
 
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg mb-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                Before: 하루 30분 일정 관리에 소비
+                이런 분들에게 유용합니다
               </h3>
               <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-                <li>• 여러 미팅 일정을 수기로 입력</li>
-                <li>• 캘린더 앱과 메모 앱을 오가며 관리</li>
-                <li>• 중요한 일정을 놓치는 경우 발생</li>
-                <li>• 일정 충돌로 인한 스트레스</li>
+                <li>• 여러 미팅 일정을 수기로 입력하던 분</li>
+                <li>• 캘린더 앱과 메모 앱을 오가며 관리하던 분</li>
+                <li>• 중요한 일정을 놓친 경험이 있는 분</li>
+                <li>• 일정 충돌로 스트레스를 받는 분</li>
               </ul>
             </div>
 
-            <div className="bg-green-50 dark:bg-green-900/30 p-6 rounded-lg mb-6">
+            <div className="bg-green-50 dark:bg-green-900/30 p-6 rounded-lg">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                After: Y-schedule 도입 후
+                Y-schedule 활용 방법
               </h3>
               <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-                <li>✓ 채팅으로 5초 만에 일정 등록</li>
-                <li>✓ AI가 자동으로 우선순위 분류</li>
-                <li>✓ 주간 리포트로 시간 관리 개선</li>
-                <li>✓ 일정 관리 시간 80% 절감</li>
+                <li>✓ "내일 오후 2시 팀 미팅"처럼 채팅으로 빠르게 등록</li>
+                <li>✓ 카테고리 자동 분류로 업무/개인 일정 구분</li>
+                <li>✓ 주간 리포트로 시간 사용 패턴 파악</li>
+                <li>✓ 캘린더 뷰에서 한 주 일정 한눈에 확인</li>
               </ul>
             </div>
-
-            <blockquote className="border-l-4 border-blue-600 dark:border-blue-400 pl-4 italic text-gray-700 dark:text-gray-300">
-              "Y-schedule 덕분에 일정 관리에 쓰던 시간을 비즈니스 성장에 투자할 수 있게 되었습니다.
-              특히 채팅 기반 입력이 정말 혁신적이에요."
-            </blockquote>
           </div>
 
           {/* Case Study 2 */}
@@ -90,40 +85,35 @@ const UseCasesBlog = () => {
               <GraduationCap className="w-12 h-12 text-purple-600 dark:text-purple-400 mr-4" />
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  사례 2: 대학생 이서연님
+                  학생 활용 사례
                 </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">컴퓨터공학과 3학년 | 부산</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">수업, 과제, 시험 일정이 복잡한 학생</p>
               </div>
             </div>
 
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg mb-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                Before: 수업, 과제, 시험 일정 관리의 어려움
+                이런 분들에게 유용합니다
               </h3>
               <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-                <li>• 종이 플래너 사용으로 분실 위험</li>
-                <li>• 과제 마감일을 자주 놓침</li>
-                <li>• 동아리, 아르바이트 일정 충돌</li>
-                <li>• 시험 기간 계획 수립의 어려움</li>
+                <li>• 종이 플래너 분실 경험이 있는 분</li>
+                <li>• 과제 마감일을 자주 놓치는 분</li>
+                <li>• 동아리, 아르바이트 일정 충돌이 잦은 분</li>
+                <li>• 시험 기간 계획 수립이 어려운 분</li>
               </ul>
             </div>
 
-            <div className="bg-green-50 dark:bg-green-900/30 p-6 rounded-lg mb-6">
+            <div className="bg-green-50 dark:bg-green-900/30 p-6 rounded-lg">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                After: Y-schedule로 학업 관리
+                Y-schedule 활용 방법
               </h3>
               <ul className="space-y-2 text-gray-700 dark:text-gray-300">
                 <li>✓ 모든 일정을 클라우드에 안전하게 보관</li>
-                <li>✓ 과제 마감일 놓치지 않음 (100% 달성)</li>
-                <li>✓ 카테고리별로 수업/과제/개인 일정 구분</li>
-                <li>✓ 주간 리포트로 학습 시간 최적화</li>
+                <li>✓ "학습" 카테고리로 수업·과제·시험 일정 구분</li>
+                <li>✓ 캘린더에서 마감일 한눈에 확인</li>
+                <li>✓ 주간 리포트로 학습 시간 분배 파악</li>
               </ul>
             </div>
-
-            <blockquote className="border-l-4 border-purple-600 dark:border-purple-400 pl-4 italic text-gray-700 dark:text-gray-300">
-              "이제 과제 마감일을 놓칠 걱정이 없어요. AI가 알아서 우선순위를 정해주니까
-              중요한 과제에 집중할 수 있게 되었어요. 학점도 올랐어요!"
-            </blockquote>
           </div>
 
           {/* Case Study 3 */}
@@ -132,40 +122,35 @@ const UseCasesBlog = () => {
               <Users className="w-12 h-12 text-green-600 dark:text-green-400 mr-4" />
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  사례 3: 프리랜서 디자이너 박지훈님
+                  프리랜서 활용 사례
                 </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">UX/UI 디자이너 | 제주</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">여러 프로젝트를 동시에 진행하는 프리랜서</p>
               </div>
             </div>
 
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg mb-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                Before: 다수의 프로젝트 관리 혼란
+                이런 분들에게 유용합니다
               </h3>
               <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-                <li>• 5개 이상의 프로젝트 동시 진행</li>
-                <li>• 클라이언트별 미팅 시간 조율 어려움</li>
-                <li>• 마감일 관리 스트레스</li>
-                <li>• 워라밸 무너짐</li>
+                <li>• 여러 프로젝트를 동시에 진행하는 분</li>
+                <li>• 클라이언트별 미팅 시간 조율이 복잡한 분</li>
+                <li>• 마감일 관리에 스트레스를 받는 분</li>
+                <li>• 워라밸을 지키고 싶은 분</li>
               </ul>
             </div>
 
-            <div className="bg-green-50 dark:bg-green-900/30 p-6 rounded-lg mb-6">
+            <div className="bg-green-50 dark:bg-green-900/30 p-6 rounded-lg">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                After: 체계적인 프로젝트 관리
+                Y-schedule 활용 방법
               </h3>
               <ul className="space-y-2 text-gray-700 dark:text-gray-300">
                 <li>✓ 프로젝트별 카테고리로 일정 분류</li>
-                <li>✓ 우선순위 기반 작업 순서 최적화</li>
-                <li>✓ 주간 리포트로 업무량 파악</li>
-                <li>✓ 개인 시간 확보 (워라밸 개선)</li>
+                <li>✓ 채팅으로 빠르게 클라이언트 미팅 등록</li>
+                <li>✓ 주간 리포트로 업무량과 여가 시간 균형 파악</li>
+                <li>✓ 월간 뷰에서 마감일 전체 조망</li>
               </ul>
             </div>
-
-            <blockquote className="border-l-4 border-green-600 dark:border-green-400 pl-4 italic text-gray-700 dark:text-gray-300">
-              "프리랜서로 일하면서 가장 힘든 게 일정 관리였는데, Y-schedule이 정말 큰 도움이 됐어요.
-              이제 저녁 시간은 온전히 제 것으로 만들 수 있어요."
-            </blockquote>
           </div>
 
           {/* Case Study 4 */}
@@ -174,61 +159,34 @@ const UseCasesBlog = () => {
               <Coffee className="w-12 h-12 text-orange-600 dark:text-orange-400 mr-4" />
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  사례 4: 워킹맘 정수진님
+                  육아·가사 병행 활용 사례
                 </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">마케팅 팀장 | 서울</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">업무와 가정 일정을 함께 관리하는 분</p>
               </div>
             </div>
 
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg mb-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                Before: 업무와 육아의 균형 어려움
+                이런 분들에게 유용합니다
               </h3>
               <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-                <li>• 회사 일정과 아이 일정 혼재</li>
-                <li>• 중요한 약속을 놓치는 경우 발생</li>
-                <li>• 일정 관리로 인한 스트레스 누적</li>
-                <li>• 개인 시간 부족</li>
+                <li>• 회사 일정과 가정 일정이 뒤섞이는 분</li>
+                <li>• 중요한 약속을 놓친 경험이 있는 분</li>
+                <li>• 일정 관리로 스트레스를 받는 분</li>
+                <li>• 개인 시간이 부족한 분</li>
               </ul>
             </div>
 
-            <div className="bg-green-50 dark:bg-green-900/30 p-6 rounded-lg mb-6">
+            <div className="bg-green-50 dark:bg-green-900/30 p-6 rounded-lg">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                After: 업무와 육아의 완벽한 조화
+                Y-schedule 활용 방법
               </h3>
               <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-                <li>✓ 업무/육아/개인 카테고리 분리 관리</li>
-                <li>✓ 우선순위로 중요한 일에 집중</li>
-                <li>✓ 아이 일정도 놓치지 않음</li>
-                <li>✓ 시간 여유 생겨 자기계발 시작</li>
+                <li>✓ 업무/가정/개인 카테고리로 일정 분리</li>
+                <li>✓ 자연어 입력으로 빠르게 가족 일정 등록</li>
+                <li>✓ 캘린더에서 가족 일정 한눈에 확인</li>
+                <li>✓ 주간 리포트로 시간 배분 파악</li>
               </ul>
-            </div>
-
-            <blockquote className="border-l-4 border-orange-600 dark:border-orange-400 pl-4 italic text-gray-700 dark:text-gray-300">
-              "업무와 육아를 병행하면서 일정 관리가 정말 힘들었는데, Y-schedule 덕분에
-              두 가지 모두 완벽하게 해낼 수 있게 되었어요. 저에게 꼭 필요한 서비스예요."
-            </blockquote>
-          </div>
-
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-12 mb-6">
-            공통적인 성과
-          </h2>
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg">
-              <h3 className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">70%</h3>
-              <p className="text-gray-700 dark:text-gray-300">일정 입력 시간 절감</p>
-            </div>
-            <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg">
-              <h3 className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">95%</h3>
-              <p className="text-gray-700 dark:text-gray-300">일정 완료율 향상</p>
-            </div>
-            <div className="bg-purple-50 dark:bg-purple-900/20 p-6 rounded-lg">
-              <h3 className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">4.8/5</h3>
-              <p className="text-gray-700 dark:text-gray-300">사용자 만족도</p>
-            </div>
-            <div className="bg-orange-50 dark:bg-orange-900/20 p-6 rounded-lg">
-              <h3 className="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-2">100%</h3>
-              <p className="text-gray-700 dark:text-gray-300">재사용 의향</p>
             </div>
           </div>
 

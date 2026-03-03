@@ -17,16 +17,10 @@ export default function AIGuidePage() {
       examples: ['팀 회의 → 업무', '영화 보기 → 여가', '영어 공부 → 학습'],
     },
     {
-      icon: <Calendar className="text-blue-600 dark:text-blue-400" size={24} />,
-      title: '반복 일정 인식',
-      description: '"매주", "매일", "격주" 등의 표현을 자동으로 인식해 반복 일정 생성',
-      examples: ['매주 월요일 미팅 → 매주 반복', '매일 운동 → 매일 반복'],
-    },
-    {
       icon: <Clock className="text-blue-600 dark:text-blue-400" size={24} />,
-      title: '우선순위 자동 설정',
-      description: '긴급, 중요 등의 키워드를 감지해 우선순위를 자동으로 설정',
-      examples: ['긴급 보고서 작성 → 높음', '여유 있게 책 읽기 → 낮음'],
+      title: '확인 후 저장',
+      description: 'AI 파싱 결과를 카드로 보여주고, 사용자가 확인 후 저장하는 안전한 방식',
+      examples: ['파싱 결과 확인 카드 표시 → 저장 또는 취소', '잘못 파싱된 경우 취소 후 재입력'],
     },
   ]
 
@@ -39,17 +33,6 @@ export default function AIGuidePage() {
         title: '클라이언트 미팅',
         category: '업무',
         priority: '보통',
-      },
-    },
-    {
-      input: '매주 월요일 9시 팀 스탠드업',
-      output: {
-        date: '매주 월요일',
-        time: '09:00',
-        title: '팀 스탠드업',
-        category: '업무',
-        priority: '보통',
-        repeat: '매주',
       },
     },
     {
@@ -81,7 +64,7 @@ export default function AIGuidePage() {
       step: 3,
       title: '자동 등록',
       description: '캘린더에 바로 등록됩니다',
-      detail: '확인 없이 자동으로 일정이 생성되고 알림도 설정됩니다',
+      detail: '확인 카드를 통해 파싱 결과를 검토하고 저장할 수 있습니다',
     },
   ]
 

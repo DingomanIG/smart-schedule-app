@@ -7,8 +7,8 @@ export default function ComparisonPage() {
     { name: 'AI 자연어 입력', smartSchedule: true, traditional: false, manual: false },
     { name: '자동 날짜/시간 파싱', smartSchedule: true, traditional: false, manual: false },
     { name: '스마트 카테고리 분류', smartSchedule: true, traditional: false, manual: false },
-    { name: '반복 일정 자동 생성', smartSchedule: true, traditional: true, manual: false },
-    { name: '우선순위 자동 설정', smartSchedule: true, traditional: false, manual: false },
+    { name: '반복 일정 자동 생성', smartSchedule: false, traditional: true, manual: false },
+    { name: '우선순위 자동 설정', smartSchedule: false, traditional: false, manual: false },
     { name: '주간 리포트 분석', smartSchedule: true, traditional: false, manual: false },
     { name: '다크모드 지원', smartSchedule: true, traditional: true, manual: false },
     { name: '모바일 반응형', smartSchedule: true, traditional: true, manual: false },
@@ -23,7 +23,7 @@ export default function ComparisonPage() {
       icon: <Sparkles className="text-blue-600 dark:text-blue-400" size={32} />,
       title: 'AI 자동화',
       description: 'GPT-4o-mini가 입력을 이해하고 자동으로 일정을 정리합니다',
-      benefit: '입력 시간 90% 단축',
+      benefit: '복잡한 폼 없이 채팅으로 등록',
     },
     {
       icon: <Zap className="text-blue-600 dark:text-blue-400" size={32} />,
@@ -35,7 +35,7 @@ export default function ComparisonPage() {
       icon: <TrendingUp className="text-blue-600 dark:text-blue-400" size={32} />,
       title: '스마트 분석',
       description: '주간 리포트로 시간 사용 패턴과 생산성을 분석합니다',
-      benefit: '생산성 30% 향상',
+      benefit: '카테고리별 시간 현황 파악',
     },
     {
       icon: <DollarSign className="text-blue-600 dark:text-blue-400" size={32} />,
@@ -47,7 +47,7 @@ export default function ComparisonPage() {
       icon: <Shield className="text-blue-600 dark:text-blue-400" size={32} />,
       title: '안전한 보안',
       description: 'Firebase 인증으로 데이터를 안전하게 보호합니다',
-      benefit: '은행급 보안',
+      benefit: 'Firebase 인증 기반 보안',
     },
     {
       icon: <Clock className="text-blue-600 dark:text-blue-400" size={32} />,

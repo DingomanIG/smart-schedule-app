@@ -19,9 +19,9 @@ export default function TutorialPage() {
       icon: <MessageCircle className="text-blue-600 dark:text-blue-400" size={24} />,
       description: '자연어로 편하게 말하듯이 일정을 입력하세요',
       details: [
-        '"내일 오후 3시 회의" → 자동으로 일정 생성',
-        '"매주 월요일 9시 팀 미팅" → 반복 일정 자동 등록',
+        '"내일 오후 3시 회의" → AI가 날짜·시간 자동 파싱',
         '"다음 주 금요일 저녁 약속" → 날짜/시간 자동 파싱',
+        '결과 확인 카드에서 저장 또는 취소 선택',
       ],
     },
     {
@@ -31,7 +31,7 @@ export default function TutorialPage() {
       details: [
         '주간/월간 뷰로 일정 한눈에 보기',
         '일정 클릭으로 상세 정보 확인',
-        '우선순위별 색상 구분',
+        '일/주/월 뷰 전환으로 원하는 단위 확인',
       ],
     },
     {
@@ -56,8 +56,8 @@ export default function TutorialPage() {
       content: '"3시", "오후 3시", "15:00" 모두 인식 가능해요',
     },
     {
-      title: '💡 팁 3: 반복 일정 활용',
-      content: '"매주", "매일", "격주" 등의 표현으로 반복 일정을 한 번에 등록하세요',
+      title: '💡 팁 3: 확인 카드 검토하기',
+      content: 'AI가 파싱한 결과를 카드로 보여줍니다. 날짜·시간이 맞는지 확인 후 저장하세요.',
     },
   ]
 

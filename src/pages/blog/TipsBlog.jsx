@@ -77,47 +77,6 @@ const TipsBlog = () => {
             </div>
           </div>
 
-          <div className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 p-8 rounded-lg mb-8">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-              2. 우선순위 자동 인식 키워드
-            </h3>
-            <p className="text-gray-700 dark:text-gray-300 mb-4">
-              특정 단어를 사용하면 AI가 자동으로 우선순위를 설정합니다.
-            </p>
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="bg-red-50 dark:bg-red-900/30 p-4 rounded-lg">
-                <h4 className="font-semibold text-red-600 dark:text-red-400 mb-2">높음 우선순위</h4>
-                <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                  <li>• 중요한</li>
-                  <li>• 급한</li>
-                  <li>• 긴급</li>
-                  <li>• 필수</li>
-                  <li>• 마감</li>
-                </ul>
-              </div>
-              <div className="bg-yellow-50 dark:bg-yellow-900/30 p-4 rounded-lg">
-                <h4 className="font-semibold text-yellow-600 dark:text-yellow-400 mb-2">중간 우선순위</h4>
-                <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                  <li>• 회의</li>
-                  <li>• 미팅</li>
-                  <li>• 약속</li>
-                  <li>• 준비</li>
-                  <li>• 제출</li>
-                </ul>
-              </div>
-              <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg">
-                <h4 className="font-semibold text-blue-600 dark:text-blue-400 mb-2">낮음 우선순위</h4>
-                <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                  <li>• 여유있게</li>
-                  <li>• 틈나면</li>
-                  <li>• 가능하면</li>
-                  <li>• 한번</li>
-                  <li>• 보기</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
           <div className="bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/30 p-8 rounded-lg mb-8">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
               3. 카테고리 자동 분류 키워드
@@ -155,44 +114,6 @@ const TipsBlog = () => {
             캘린더 뷰 활용 팁
           </h2>
 
-          <div className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/30 p-8 rounded-lg mb-8">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-              4. 색상 코딩으로 한눈에 파악하기
-            </h3>
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg mb-4">
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-3">우선순위별 색상</h4>
-              <div className="space-y-3">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 bg-red-500 rounded mr-3"></div>
-                  <span className="text-gray-700 dark:text-gray-300">
-                    <strong>빨강:</strong> 높은 우선순위 (긴급하고 중요한 일정)
-                  </span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-8 h-8 bg-yellow-500 rounded mr-3"></div>
-                  <span className="text-gray-700 dark:text-gray-300">
-                    <strong>노랑:</strong> 중간 우선순위 (일반적인 일정)
-                  </span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-8 h-8 bg-blue-500 rounded mr-3"></div>
-                  <span className="text-gray-700 dark:text-gray-300">
-                    <strong>파랑:</strong> 낮은 우선순위 (여유있는 일정)
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
-              <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                💡 Pro Tip
-              </p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">
-                한 주를 시작할 때 빨간색 일정부터 처리 계획을 세우면
-                중요한 일을 놓치지 않을 수 있습니다.
-              </p>
-            </div>
-          </div>
-
           <div className="bg-gradient-to-r from-pink-50 to-pink-100 dark:from-pink-900/30 dark:to-pink-800/30 p-8 rounded-lg mb-8">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
               5. 주간 뷰 vs 월간 뷰 활용 전략
@@ -225,54 +146,12 @@ const TipsBlog = () => {
 
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-12 mb-6">
             <Target className="inline w-8 h-8 mr-2 text-blue-600 dark:text-blue-400" />
-            주간 리포트 200% 활용하기
+            주간 리포트 활용하기
           </h2>
-
-          <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-900/30 dark:to-indigo-800/30 p-8 rounded-lg mb-8">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-              6. AI 분석 결과 해석하기
-            </h3>
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg mb-4">
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
-                주간 리포트에서 확인해야 할 핵심 지표
-              </h4>
-              <div className="space-y-4">
-                <div>
-                  <p className="font-semibold text-gray-900 dark:text-white mb-2">
-                    1. 일정 완료율
-                  </p>
-                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                    <li>• 90% 이상: 훌륭한 시간 관리</li>
-                    <li>• 70-89%: 개선 필요, 일정 조정 고려</li>
-                    <li>• 70% 미만: 일정을 과도하게 계획하고 있을 수 있음</li>
-                  </ul>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900 dark:text-white mb-2">
-                    2. 카테고리별 시간 분배
-                  </p>
-                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                    <li>• 업무 60% 이상: 번아웃 주의, 휴식 필요</li>
-                    <li>• 개인 10% 미만: 자기관리 시간 부족</li>
-                    <li>• 학습 0%: 성장 기회 부족</li>
-                  </ul>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900 dark:text-white mb-2">
-                    3. 우선순위별 분포
-                  </p>
-                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                    <li>• 높음 50% 이상: 모든 게 급하면 우선순위가 아님</li>
-                    <li>• 낮음 50% 이상: 중요한 일을 미루고 있지는 않은가?</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
 
           <div className="bg-gradient-to-r from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-800/30 p-8 rounded-lg mb-8">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-              7. 주간 리포트로 다음 주 계획하기
+              6. 주간 리포트로 다음 주 계획하기
             </h3>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg">
               <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
@@ -385,16 +264,15 @@ const TipsBlog = () => {
           </div>
 
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-8 rounded-lg text-white my-8">
-            <h2 className="text-2xl font-bold mb-4">더 많은 팁이 궁금하신가요?</h2>
+            <h2 className="text-2xl font-bold mb-4">사용하면서 궁금한 점이 있으신가요?</h2>
             <p className="mb-6">
-              Y-schedule 사용자 커뮤니티에서 다양한 활용 사례와 팁을 공유하고 있습니다.
-              여러분의 노하우도 함께 나눠주세요!
+              문의 페이지를 통해 질문을 남겨주시면 답변 드리겠습니다.
             </p>
             <Link
               to="/contact"
               className="inline-block bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
             >
-              커뮤니티 참여하기
+              문의하기
             </Link>
           </div>
 

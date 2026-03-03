@@ -66,7 +66,7 @@ export default function PricingPage() {
             간단한 요금제
           </h1>
           <p className="text-xl text-gray-600">
-            무료로 시작하고, 필요할 때 업그레이드하세요
+            현재 무료로 제공 중입니다. 프리미엄 플랜은 준비 중입니다.
           </p>
         </div>
       </section>
